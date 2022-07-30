@@ -7,18 +7,21 @@ declare enum OcppMessageType {
 }
 
 declare type OcppMessageId = string;
+declare type OcppMessageAction = string;
+declare type OcppMessagePayload = Record<string, any>;
 
 declare type OcppMessage = {
-  type: OcppMessageType;
-  id: OcppMessageId;
+  get type(): OcppMessageType;
+  get id(): OcppMessageId;
 };
 
 declare type InboundOcppMessage = OcppMessage & {
-  from: OcppClient;
+  get recipient(): OcppClient;
+  set recipient(recipient: OcppClient);
 };
 
 declare type OutboundOcppMessage = OcppMessage & {
-  to: OcppClient;
+  get sender(): OcppClient;
   get state(): OutboundOcppMessageState;
 };
 
