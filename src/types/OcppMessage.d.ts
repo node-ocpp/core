@@ -61,4 +61,39 @@ declare enum ResultingOcppMessageState {
   ResponseReceived,
 }
 
+declare type OcppCallMessage<
+  TAction extends OcppMessageAction,
+  TPayload extends OcppMessagePayload
+> = OcppMessage & {
+  type: OcppMessageType.CALL;
+  get action(): TAction;
+  get data(): TPayload;
+};
+
+declare type OcppCallResultMessage<TPayload extends OcppMessagePayload> =
+  OcppMessage & {
+    type: OcppMessageType.CALLRESULT;
+    get data(): TPayload;
+  };
+
+declare type RPCError =
+  | 'FormatViolation'
+  | 'GenericError'
+  | 'InternalError'
+  | 'MessageTypeNotSupported'
+  | 'NotImplemented'
+  | 'NotSupported'
+  | 'OccurrenceConstraintViolation'
+  | 'PropertyConstraintViolation'
+  | 'ProtocolError'
+  | 'RpcFrameworkError'
+  | 'SecurityError'
+  | 'TypeConstraintViolation';
+
+declare type OcppCallErrorMessage = OcppMessage & {
+  type: OcppMessageType.CALLERROR;
+  code: RPCError;
+  description: string;
+  details: Record<string, JSONValue>;
+};
 export default OcppMessage;
