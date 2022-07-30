@@ -9,15 +9,15 @@ declare enum OcppMessageType {
 declare type OcppMessageId = string;
 declare type OcppMessageAction = string;
 
-declare type OcppPayloadValue =
+declare type JSONValue =
   | string
   | number
   | boolean
   | Date
-  | { [x: string]: OcppPayloadValue }
-  | Array<OcppPayloadValue>;
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>;
 
-declare type OcppMessagePayload = Record<string, OcppPayloadValue> | null;
+declare type OcppMessagePayload = Record<string, JSONValue> | null;
 
 declare type OcppMessage = {
   get type(): OcppMessageType;
