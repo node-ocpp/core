@@ -109,10 +109,9 @@ declare type InboundOcppCall<
 > = RespondableOcppMessage<TResponse> & OcppCallMessage<TAction, TPayload>;
 
 declare type InboundOcppCallResult<TPayload extends OcppMessagePayload> =
-  InboundOcppMessage & OcppCallResultMessage<TPayload> & {};
+  InboundOcppMessage & OcppCallResultMessage<TPayload>;
 
-declare type InboundOcppCallError = InboundOcppMessage &
-  OcppCallErrorMessage & {};
+declare type InboundOcppCallError = InboundOcppMessage & OcppCallErrorMessage;
 
 declare type OutboundOcppCall<
   TAction extends OcppMessageAction,
@@ -126,10 +125,9 @@ declare type OutboundOcppCallResponse<TPayload extends OcppMessagePayload> =
   | InboundOcppCallError;
 
 declare type OutboundOcppCallResult<TPayload extends OcppMessagePayload> =
-  OutboundOcppMessage & OcppCallResultMessage<TPayload> & {};
+  OutboundOcppMessage & OcppCallResultMessage<TPayload>;
 
-declare type OutboundOcppCallError = OutboundOcppMessage &
-  OcppCallErrorMessage & {};
+declare type OutboundOcppCallError = OutboundOcppMessage & OcppCallErrorMessage;
 
 export default OcppMessage;
 export {
