@@ -96,4 +96,49 @@ declare type OcppCallErrorMessage = OcppMessage & {
   description: string;
   details: Record<string, JSONValue>;
 };
+
+declare type InboundOcppCallResponse<TPayload extends OcppMessagePayload> =
+  | OutboundOcppCallResult<TPayload>
+  | OutboundOcppCallError;
+
+declare type InboundOcppCall<
+  TAction extends OcppMessageAction,
+  TPayload extends OcppMessagePayload,
+  TResponsePayload extends OcppMessagePayload,
+  TResponse extends InboundOcppCallResponse<TResponsePayload>
+> = RespondableOcppMessage<TResponse> & OcppCallMessage<TAction, TPayload>;
+
+declare type InboundOcppCallResult<TPayload extends OcppMessagePayload> =
+  InboundOcppMessage & OcppCallResultMessage<TPayload> & {};
+
+declare type InboundOcppCallError = InboundOcppMessage &
+  OcppCallErrorMessage & {};
+
+declare type OutboundOcppCall<
+  TAction extends OcppMessageAction,
+  TPayload extends OcppMessagePayload,
+  TResponsePayload extends OcppMessagePayload,
+  TResponse extends OutboundOcppCallResponse<TResponsePayload>
+> = ResultingOcppMessage<TResponse> & OcppCallMessage<TAction, TPayload>;
+
+declare type OutboundOcppCallResponse<TPayload extends OcppMessagePayload> =
+  | InboundOcppCallResult<TPayload>
+  | InboundOcppCallError;
+
+declare type OutboundOcppCallResult<TPayload extends OcppMessagePayload> =
+  OutboundOcppMessage & OcppCallResultMessage<TPayload> & {};
+
+declare type OutboundOcppCallError = OutboundOcppMessage &
+  OcppCallErrorMessage & {};
+
 export default OcppMessage;
+export {
+  OcppMessageType,
+  OcppMessagePayload,
+  InboundOcppCall,
+  InboundOcppCallResult,
+  InboundOcppCallError,
+  OutboundOcppCall,
+  OutboundOcppCallResult,
+  OutboundOcppCallError,
+};
