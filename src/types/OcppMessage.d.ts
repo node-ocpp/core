@@ -8,7 +8,16 @@ declare enum OcppMessageType {
 
 declare type OcppMessageId = string;
 declare type OcppMessageAction = string;
-declare type OcppMessagePayload = Record<string, any>;
+
+declare type OcppPayloadValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | { [x: string]: OcppPayloadValue }
+  | Array<OcppPayloadValue>;
+
+declare type OcppMessagePayload = Record<string, OcppPayloadValue> | null;
 
 declare type OcppMessage = {
   get type(): OcppMessageType;
