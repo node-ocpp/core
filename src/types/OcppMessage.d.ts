@@ -52,7 +52,7 @@ declare enum RespondableOcppMessageState {
 
 declare type ResultingOcppMessage<TResponse extends InboundOcppMessage> =
   OutboundOcppMessage & {
-    handleResponse: (response: TResponse) => void;
+    handleResponse: (handler: (response: TResponse) => void) => void;
     get state(): ResultingOcppMessageState;
   };
 
