@@ -22,12 +22,12 @@ declare type OcppMessage = {
 };
 
 declare type InboundOcppMessage = OcppMessage & {
-  get recipient(): OcppClient;
+  get sender(): OcppClient;
   set recipient(recipient: OcppClient);
 };
 
 declare type OutboundOcppMessage = OcppMessage & {
-  get sender(): OcppClient;
+  get recipient(): OcppClient;
   get state(): OutboundOcppMessageState;
 };
 
