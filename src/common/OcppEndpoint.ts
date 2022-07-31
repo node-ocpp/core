@@ -1,3 +1,7 @@
+/* eslint-disable node/no-unpublished-import */
+import { EventEmitter } from 'events';
+import TypedEmitter from 'typed-emitter';
+
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import {
@@ -25,7 +29,7 @@ abstract class OcppEndpoint<
     TSession,
     TAuthenticationProperties
   >
-> {
+> extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
   private sessions: TSession[];
@@ -33,7 +37,6 @@ abstract class OcppEndpoint<
   private messageHandlers: OcppMessageHandler[];
 
   protected abstract get isListening(): boolean;
-
   protected abstract handleCreate(): Promise<void>;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
@@ -46,6 +49,7 @@ abstract class OcppEndpoint<
     authenticationHandlers: TAuthenticationHandler[],
     messageHandlers: OcppMessageHandler[]
   ) {
+    super();
     this.config = config;
     this.authenticationHandlers = authenticationHandlers;
     this.messageHandlers = messageHandlers;
@@ -59,6 +63,7 @@ abstract class OcppEndpoint<
     }
 
     await this.handleListen();
+    this.emit('server_listening', this.config);
   }
 
   public async stop() {
@@ -67,6 +72,7 @@ abstract class OcppEndpoint<
     }
 
     await this.handleStop();
+    this.emit('server_stopped');
   }
 
   public async sendMessage(message: TOutboundMessage) {
@@ -78,7 +84,8 @@ abstract class OcppEndpoint<
       );
     }
 
-    return await this.handleOutboundMessage(message);
+    await this.handleOutboundMessage(message);
+    this.emit('message_sent', message);
   }
 
   public getSession(clientId: string): TSession | false {
@@ -97,6 +104,7 @@ abstract class OcppEndpoint<
     }
 
     this.sessions.push();
+    this.emit('client_connected', session.client);
   }
 
   protected onClientDisconnected(session: TSession) {
@@ -109,12 +117,23 @@ abstract class OcppEndpoint<
     this.sessions = this.sessions.filter(
       _session => _session.client.id !== session.client.id
     );
+
+    this.emit('client_disconnected', session.client);
   }
 
   protected onInboundMessage(message: TInboundMessage) {
     return; // TODO
   }
 }
+
+type OcppEndpointEvents = {
+  server_listening: (config: OcppEndpointConfig) => void;
+  server_stopped: () => void;
+  client_connected: (client: OcppClient) => void;
+  client_disconnected: (client: OcppClient) => void;
+  message_sent: (message: OutboundOcppMessage) => void;
+  message_received: (message: InboundOcppMessage) => void;
+};
 
 type OcppEndpointConfig = {
   port: number;
