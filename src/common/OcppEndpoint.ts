@@ -31,7 +31,7 @@ abstract class OcppEndpoint<
   private messageHandlers: OcppMessageHandler[];
 
   protected abstract get isListening(): boolean;
-  protected abstract handleCreate(): Promise<void>;
+  protected abstract handleCreate(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
   protected abstract handleOutboundMessage(
