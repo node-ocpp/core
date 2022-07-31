@@ -4,6 +4,11 @@ import {
   InboundOcppMessage,
   OutboundOcppMessage,
 } from '../types/ocpp/OcppMessage';
+import {
+  OcppAuthenticationHandler,
+  OcppMessageHandler,
+  OcppAuthenticationProperties,
+} from './OcppHandlers';
 
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
@@ -114,27 +119,3 @@ abstract class OcppEndpoint<
 type OcppEndpointConfig = {
   port: number;
 };
-
-interface OcppAuthenticationHandler<
-  TClient extends OcppClient,
-  TSession extends OcppSession<TClient>,
-  TAuthenticationProperties extends OcppAuthenticationProperties<
-    TClient,
-    TSession
-  >
-> {
-  handleAuthentication: (
-    properties: TAuthenticationProperties,
-    next: () => void
-  ) => TSession;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface OcppAuthenticationProperties<
-  TClient extends OcppClient,
-  TSession extends OcppSession<TClient>
-> {}
-
-interface OcppMessageHandler {
-  handleMessage: (message: InboundOcppMessage, next: () => void) => void;
-}
