@@ -1,4 +1,4 @@
-import OcppClient from './OcppClient';
+import OcppClient from '../../common/OcppClient';
 
 declare enum OcppMessageType {
   CALL = 2,
@@ -20,7 +20,7 @@ declare type JSONValue =
 declare type OcppMessagePayload = Record<string, JSONValue> | null;
 
 declare type OcppMessage = {
-  get type(): OcppMessageType;
+  type: OcppMessageType;
   get id(): OcppMessageId;
 };
 
