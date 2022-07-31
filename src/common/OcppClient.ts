@@ -1,7 +1,5 @@
-declare type OcppClientId = string;
-
 declare type OcppClient = {
-  get id(): OcppClientId;
+  get id(): string;
 };
 
 export default OcppClient;
