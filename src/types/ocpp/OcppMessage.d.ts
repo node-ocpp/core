@@ -7,17 +7,16 @@ declare enum OcppMessageType {
 }
 
 declare type OcppMessageId = string;
-declare type OcppMessageAction = string;
 
-declare type JSONValue =
+declare type OcppMessageValue =
   | string
   | number
   | boolean
   | Date
-  | { [x: string]: JSONValue }
-  | Array<JSONValue>;
+  | { [x: string]: OcppMessageValue }
+  | Array<OcppMessageValue>;
 
-declare type OcppMessagePayload = Record<string, JSONValue> | null;
+declare type OcppMessagePayload = OcppMessageValue | null | {};
 
 declare type OcppMessage = {
   type: OcppMessageType;
@@ -61,82 +60,12 @@ declare enum ResultingOcppMessageState {
   ResponseReceived,
 }
 
-declare type OcppCallMessage<
-  TAction extends OcppMessageAction,
-  TPayload extends OcppMessagePayload
-> = OcppMessage & {
-  type: OcppMessageType.CALL;
-  get action(): TAction;
-  get data(): TPayload;
-};
-
-declare type OcppCallResultMessage<TPayload extends OcppMessagePayload> =
-  OcppMessage & {
-    type: OcppMessageType.CALLRESULT;
-    get data(): TPayload;
-  };
-
-declare type RPCError =
-  | 'FormatViolation'
-  | 'GenericError'
-  | 'InternalError'
-  | 'MessageTypeNotSupported'
-  | 'NotImplemented'
-  | 'NotSupported'
-  | 'OccurrenceConstraintViolation'
-  | 'PropertyConstraintViolation'
-  | 'ProtocolError'
-  | 'RpcFrameworkError'
-  | 'SecurityError'
-  | 'TypeConstraintViolation';
-
-declare type OcppCallErrorMessage = OcppMessage & {
-  type: OcppMessageType.CALLERROR;
-  code: RPCError;
-  description: string;
-  details: Record<string, JSONValue>;
-};
-
-declare type InboundOcppCallResponse<TPayload extends OcppMessagePayload> =
-  | OutboundOcppCallResult<TPayload>
-  | OutboundOcppCallError;
-
-declare type InboundOcppCall<
-  TAction extends OcppMessageAction,
-  TPayload extends OcppMessagePayload,
-  TResponsePayload extends OcppMessagePayload,
-  TResponse extends InboundOcppCallResponse<TResponsePayload>
-> = RespondableOcppMessage<TResponse> & OcppCallMessage<TAction, TPayload>;
-
-declare type InboundOcppCallResult<TPayload extends OcppMessagePayload> =
-  InboundOcppMessage & OcppCallResultMessage<TPayload>;
-
-declare type InboundOcppCallError = InboundOcppMessage & OcppCallErrorMessage;
-
-declare type OutboundOcppCall<
-  TAction extends OcppMessageAction,
-  TPayload extends OcppMessagePayload,
-  TResponsePayload extends OcppMessagePayload,
-  TResponse extends OutboundOcppCallResponse<TResponsePayload>
-> = ResultingOcppMessage<TResponse> & OcppCallMessage<TAction, TPayload>;
-
-declare type OutboundOcppCallResponse<TPayload extends OcppMessagePayload> =
-  | InboundOcppCallResult<TPayload>
-  | InboundOcppCallError;
-
-declare type OutboundOcppCallResult<TPayload extends OcppMessagePayload> =
-  OutboundOcppMessage & OcppCallResultMessage<TPayload>;
-
-declare type OutboundOcppCallError = OutboundOcppMessage & OcppCallErrorMessage;
-
 export default OcppMessage;
 export {
   OcppMessageType,
   OcppMessagePayload,
-  InboundOcppCall,
-  InboundOcppCallResult,
-  InboundOcppCallError,
-  OutboundOcppCall,
-  OutboundOcppCallResult,
-  OutboundOcppCallError,
+  InboundOcppMessage,
+  OutboundOcppMessage,
+  RespondableOcppMessage,
+  ResultingOcppMessage,
 };
