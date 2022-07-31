@@ -11,8 +11,7 @@ declare type GetConfigurationRequestPayload = {
   key?: string;
 };
 
-declare type GetConfigurationResponse =
-  InboundOcppCallResult<GetConfigurationResponsePayload>;
+declare type GetConfigurationResponse = InboundOcppCallResult<GetConfigurationResponsePayload>;
 
 declare type GetConfigurationResponsePayload = {
   configurationKey?: [KeyValue];

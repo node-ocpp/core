@@ -36,22 +36,20 @@ declare enum OutboundOcppMessageState {
   Sent,
 }
 
-declare type RespondableOcppMessage<TResponse extends OutboundOcppMessage> =
-  InboundOcppMessage & {
-    respond: (response: TResponse) => void;
-    get state(): RespondableOcppMessageState;
-  };
+declare type RespondableOcppMessage<TResponse extends OutboundOcppMessage> = InboundOcppMessage & {
+  respond: (response: TResponse) => void;
+  get state(): RespondableOcppMessageState;
+};
 
 declare enum RespondableOcppMessageState {
   ResponseUnsent,
   ResponseSent,
 }
 
-declare type ResultingOcppMessage<TResponse extends InboundOcppMessage> =
-  OutboundOcppMessage & {
-    handleResponse: (handler: (response: TResponse) => void) => void;
-    get state(): ResultingOcppMessageState;
-  };
+declare type ResultingOcppMessage<TResponse extends InboundOcppMessage> = OutboundOcppMessage & {
+  handleResponse: (handler: (response: TResponse) => void) => void;
+  get state(): ResultingOcppMessageState;
+};
 
 declare enum ResultingOcppMessageState {
   ResponsePending,

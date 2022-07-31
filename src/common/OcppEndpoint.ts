@@ -4,10 +4,7 @@ import TypedEmitter from 'typed-emitter';
 
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
-import {
-  InboundOcppMessage,
-  OutboundOcppMessage,
-} from '../types/ocpp/OcppMessage';
+import { InboundOcppMessage, OutboundOcppMessage } from '../types/ocpp/OcppMessage';
 import {
   OcppAuthenticationHandler,
   OcppMessageHandler,
@@ -20,10 +17,7 @@ abstract class OcppEndpoint<
   TSession extends OcppSession<TClient>,
   TInboundMessage extends InboundOcppMessage,
   TOutboundMessage extends OutboundOcppMessage,
-  TAuthenticationProperties extends OcppAuthenticationProperties<
-    TClient,
-    TSession
-  >,
+  TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>,
   TAuthenticationHandler extends OcppAuthenticationHandler<
     TClient,
     TSession,
@@ -79,9 +73,7 @@ abstract class OcppEndpoint<
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
     } else if (!this.getSession(message.recipient.id)) {
-      throw new Error(
-        `Client with id ${message.recipient} is currently not connected`
-      );
+      throw new Error(`Client with id ${message.recipient} is currently not connected`);
     }
 
     await this.handleOutboundMessage(message);
@@ -89,18 +81,14 @@ abstract class OcppEndpoint<
   }
 
   public getSession(clientId: string): TSession | false {
-    const session = this.sessions.find(
-      _session => _session.client.id === clientId
-    );
+    const session = this.sessions.find(_session => _session.client.id === clientId);
 
     return session || false;
   }
 
   protected onClientConnected(session: TSession) {
     if (this.getSession(session.client.id)) {
-      throw new Error(
-        `Client with id ${session.client.id} is already connected`
-      );
+      throw new Error(`Client with id ${session.client.id} is already connected`);
     }
 
     this.sessions.push();
@@ -109,14 +97,10 @@ abstract class OcppEndpoint<
 
   protected onClientDisconnected(session: TSession) {
     if (!this.getSession(session.client.id)) {
-      throw new Error(
-        `Client with id ${session.client.id} is currently not connected`
-      );
+      throw new Error(`Client with id ${session.client.id} is currently not connected`);
     }
 
-    this.sessions = this.sessions.filter(
-      _session => _session.client.id !== session.client.id
-    );
+    this.sessions = this.sessions.filter(_session => _session.client.id !== session.client.id);
 
     this.emit('client_disconnected', session.client);
   }

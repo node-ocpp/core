@@ -5,15 +5,9 @@ import { InboundOcppMessage } from '../types/ocpp/OcppMessage';
 interface OcppAuthenticationHandler<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
-  TAuthenticationProperties extends OcppAuthenticationProperties<
-    TClient,
-    TSession
-  >
+  TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>
 > {
-  handleAuthentication: (
-    properties: TAuthenticationProperties,
-    next: () => void
-  ) => TSession;
+  handleAuthentication: (properties: TAuthenticationProperties, next: () => void) => TSession;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -26,8 +20,4 @@ interface OcppMessageHandler {
   handleMessage: (message: InboundOcppMessage, next: () => void) => void;
 }
 
-export {
-  OcppAuthenticationHandler,
-  OcppAuthenticationProperties,
-  OcppMessageHandler,
-};
+export { OcppAuthenticationHandler, OcppAuthenticationProperties, OcppMessageHandler };

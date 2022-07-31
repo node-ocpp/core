@@ -1,7 +1,4 @@
-import {
-  InboundOcppCallResult,
-  OutboundOcppCallResult,
-} from './OcppCallResultMessage';
+import { InboundOcppCallResult, OutboundOcppCallResult } from './OcppCallResultMessage';
 import OcppMessage, {
   OcppMessageType,
   OcppMessagePayload,
@@ -9,17 +6,13 @@ import OcppMessage, {
   ResultingOcppMessage,
 } from './OcppMessage';
 
-import {
-  InboundOcppCallError,
-  OutboundOcppCallError,
-} from './OcppCallErrorMessage';
+import { InboundOcppCallError, OutboundOcppCallError } from './OcppCallErrorMessage';
 
-declare type OcppCallMessage<TPayload extends OcppMessagePayload> =
-  OcppMessage & {
-    type: OcppMessageType.CALL;
-    get action(): string;
-    get data(): TPayload;
-  };
+declare type OcppCallMessage<TPayload extends OcppMessagePayload> = OcppMessage & {
+  type: OcppMessageType.CALL;
+  get action(): string;
+  get data(): TPayload;
+};
 
 declare type InboundOcppCall<
   TPayload extends OcppMessagePayload,
