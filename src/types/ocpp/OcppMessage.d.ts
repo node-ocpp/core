@@ -6,8 +6,6 @@ declare enum OcppMessageType {
   CALLERROR = 4,
 }
 
-declare type OcppMessageId = string;
-
 declare type OcppMessageValue =
   | string
   | number
@@ -20,7 +18,7 @@ declare type OcppMessagePayload = OcppMessageValue | null | {};
 
 declare type OcppMessage = {
   type: OcppMessageType;
-  get id(): OcppMessageId;
+  get id(): string;
 };
 
 declare type InboundOcppMessage = OcppMessage & {
