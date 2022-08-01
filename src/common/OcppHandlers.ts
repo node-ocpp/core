@@ -19,7 +19,7 @@ abstract class OcppAuthenticationHandler<
   TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>
 > implements AsyncHandler<TAuthenticationProperties>
 {
-  _next!: OcppAuthenticationHandler<TClient, TSession, TAuthenticationProperties>;
+  private _next!: OcppAuthenticationHandler<TClient, TSession, TAuthenticationProperties>;
 
   set next(handler: OcppAuthenticationHandler<TClient, TSession, TAuthenticationProperties>) {
     this._next = handler;
@@ -43,7 +43,7 @@ interface OcppAuthenticationProperties<
 abstract class OcppMessageHandler<TMessage extends InboundOcppMessage>
   implements AsyncHandler<TMessage>
 {
-  _next!: OcppMessageHandler<TMessage>;
+  private _next!: OcppMessageHandler<TMessage>;
 
   set next(handler: OcppMessageHandler<TMessage>) {
     this._next = handler;
