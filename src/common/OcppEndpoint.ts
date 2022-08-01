@@ -17,6 +17,7 @@ abstract class OcppEndpoint<
   TSession extends OcppSession<TClient>,
   TInboundMessage extends InboundOcppMessage,
   TOutboundMessage extends OutboundOcppMessage,
+  TMessageHandler extends OcppMessageHandler<TInboundMessage>,
   TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>,
   TAuthenticationHandler extends OcppAuthenticationHandler<
     TClient,
@@ -28,7 +29,7 @@ abstract class OcppEndpoint<
 
   private sessions: TSession[];
   private authenticationHandlers: TAuthenticationHandler[];
-  private messageHandlers: OcppMessageHandler[];
+  private messageHandlers: TMessageHandler[];
 
   protected abstract get isListening(): boolean;
   protected abstract handleCreate(): void;
@@ -41,7 +42,7 @@ abstract class OcppEndpoint<
   constructor(
     config: TConfig,
     authenticationHandlers: TAuthenticationHandler[],
-    messageHandlers: OcppMessageHandler[]
+    messageHandlers: TMessageHandler[]
   ) {
     super();
     this.config = config;
@@ -73,7 +74,7 @@ abstract class OcppEndpoint<
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
     } else if (!this.getSession(message.recipient.id)) {
-      throw new Error(`Client with id ${message.recipient} is currently not connected`);
+      throw new Error(`Client with id ${message.recipient.id} is currently not connected`);
     }
 
     await this.handleOutboundMessage(message);
