@@ -7,6 +7,12 @@ interface AsyncHandler<T> {
   handle(request: T): Promise<T>;
 }
 
+function mapHandlers<T>(handlers: AsyncHandler<T>[]) {
+  handlers.forEach((handler: AsyncHandler<T>, i: number) => {
+    handler.next = handlers[i + 1];
+  });
+}
+
 abstract class OcppAuthenticationHandler<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
@@ -53,4 +59,4 @@ abstract class OcppMessageHandler<TMessage extends InboundOcppMessage>
 }
 
 export default AsyncHandler;
-export { OcppAuthenticationHandler, OcppAuthenticationProperties, OcppMessageHandler };
+export { mapHandlers, OcppAuthenticationHandler, OcppAuthenticationProperties, OcppMessageHandler };

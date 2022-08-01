@@ -6,6 +6,7 @@ import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import { InboundOcppMessage, OutboundOcppMessage } from '../types/ocpp/OcppMessage';
 import {
+  mapHandlers,
   OcppAuthenticationHandler,
   OcppMessageHandler,
   OcppAuthenticationProperties,
@@ -44,6 +45,9 @@ abstract class OcppEndpoint<
     authenticationHandlers: TAuthenticationHandler[],
     messageHandlers: TMessageHandler[]
   ) {
+    mapHandlers<TAuthenticationProperties>(authenticationHandlers);
+    mapHandlers<TInboundMessage>(messageHandlers);
+
     super();
     this.config = config;
     this.authenticationHandlers = authenticationHandlers;
