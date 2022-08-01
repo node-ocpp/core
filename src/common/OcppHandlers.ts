@@ -2,9 +2,20 @@ import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import { InboundOcppMessage } from '../types/ocpp/OcppMessage';
 
-interface AsyncHandler<T> {
-  set next(handler: AsyncHandler<T>);
-  handle(request: T): Promise<T>;
+abstract class AsyncHandler<T> {
+  private _next!: AsyncHandler<T>;
+
+  set next(handler: AsyncHandler<T>) {
+    this._next = handler;
+  }
+
+  handle(request: T): Promise<T> {
+    if (this._next) {
+      return this._next.handle(request);
+    }
+
+    return null as any;
+  }
 }
 
 function mapHandlers<T>(handlers: AsyncHandler<T>[]) {
@@ -17,45 +28,21 @@ abstract class OcppAuthenticationHandler<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
   TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>
-> implements AsyncHandler<TAuthenticationProperties>
-{
-  private _next!: OcppAuthenticationHandler<TClient, TSession, TAuthenticationProperties>;
-
-  set next(handler: OcppAuthenticationHandler<TClient, TSession, TAuthenticationProperties>) {
-    this._next = handler;
+> extends AsyncHandler<TAuthenticationProperties> {
+  abstract handle(properties: TAuthenticationProperties): Promise<TAuthenticationProperties>;
   }
 
-  handle(properties: TAuthenticationProperties): Promise<TAuthenticationProperties> {
-    if (this._next) {
-      return this._next.handle(properties);
-    }
-
-    return null as any;
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface OcppAuthenticationProperties<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>
-> {}
-
-abstract class OcppMessageHandler<TMessage extends InboundOcppMessage>
-  implements AsyncHandler<TMessage>
-{
-  private _next!: OcppMessageHandler<TMessage>;
-
-  set next(handler: OcppMessageHandler<TMessage>) {
-    this._next = handler;
+> {
+  authenticateClient(session: TSession): void;
   }
 
-  handle(message: TMessage): Promise<TMessage> {
-    if (this._next) {
-      return this._next.handle(message);
-    }
-
-    return null as any;
-  }
+abstract class OcppMessageHandler<
+  TMessage extends InboundOcppMessage
+> extends AsyncHandler<TMessage> {
+  abstract handle(message: TMessage): Promise<TMessage>;
 }
 
 export default AsyncHandler;
