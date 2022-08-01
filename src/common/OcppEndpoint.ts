@@ -96,7 +96,7 @@ abstract class OcppEndpoint<
       throw new Error(`Client with id ${session.client.id} is already connected`);
     }
 
-    this.sessions.push();
+    this.sessions.push(session);
     this.emit('client_connected', session.client);
   }
 
