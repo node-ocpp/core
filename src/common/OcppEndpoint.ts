@@ -106,12 +106,12 @@ abstract class OcppEndpoint<
     }
 
     this.sessions = this.sessions.filter(_session => _session.client.id !== session.client.id);
-
     this.emit('client_disconnected', session.client);
   }
 
   protected onInboundMessage(message: TInboundMessage) {
-    return; // TODO
+    this.emit('message_received', message);
+    this.messageHandlers[0].handle(message);
   }
 }
 
