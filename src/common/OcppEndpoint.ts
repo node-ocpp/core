@@ -125,4 +125,5 @@ type OcppEndpointEvents = {
 
 type OcppEndpointConfig = {
   port: number;
+  messageTimeout: number;
 };
