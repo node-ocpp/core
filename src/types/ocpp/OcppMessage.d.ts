@@ -25,7 +25,6 @@ declare type OcppMessage = {
 
 declare type InboundOcppMessage = OcppMessage & {
   get sender(): OcppClient;
-  set recipient(recipient: OcppClient);
 };
 
 declare type OutboundOcppMessage = OcppMessage & {
