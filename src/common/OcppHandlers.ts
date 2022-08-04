@@ -2,14 +2,14 @@ import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import { InboundOcppMessage } from '../types/ocpp/OcppMessage';
 
-abstract class AsyncHandler<T> {
-  private _next!: AsyncHandler<T>;
+abstract class AsyncHandler<TRequest> {
+  private _next!: AsyncHandler<TRequest>;
 
-  set next(handler: AsyncHandler<T>) {
+  set next(handler: AsyncHandler<TRequest>) {
     this._next = handler;
   }
 
-  handle(request: T): Promise<T> {
+  handle(request: TRequest): Promise<TRequest> {
     if (this._next) {
       return this._next.handle(request);
     }
