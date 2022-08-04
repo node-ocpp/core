@@ -19,8 +19,7 @@ declare type BootNotificationRequestPayload = {
   meterType?: string;
 };
 
-declare type BootNotificationResponse =
-  OutboundOcppCallResult<BootNotificationResponsePayload>;
+declare type BootNotificationResponse = OutboundOcppCallResult<BootNotificationResponsePayload>;
 
 declare type BootNotificationResponsePayload = {
   currentTime: Date;

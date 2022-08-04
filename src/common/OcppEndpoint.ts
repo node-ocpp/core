@@ -36,9 +36,7 @@ abstract class OcppEndpoint<
   protected abstract handleCreate(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
-  protected abstract handleOutboundMessage(
-    message: TOutboundMessage
-  ): Promise<TInboundMessage | void>;
+  protected abstract handleOutboundMessage(message: TOutboundMessage): Promise<TInboundMessage>;
 
   constructor(
     config: TConfig,

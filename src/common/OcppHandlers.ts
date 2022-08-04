@@ -19,7 +19,7 @@ abstract class AsyncHandler<TRequest> {
 
   static map<THandler extends AsyncHandler<unknown>>(handlers: THandler[]): THandler[] {
     return handlers.map((handler, i) => (handler.next = handlers[i + 1]));
-}
+  }
 }
 
 abstract class OcppAuthenticationHandler<
@@ -28,14 +28,14 @@ abstract class OcppAuthenticationHandler<
   TAuthenticationProperties extends OcppAuthenticationRequest<TClient, TSession>
 > extends AsyncHandler<TAuthenticationProperties> {
   abstract handle(properties: TAuthenticationProperties): Promise<TAuthenticationProperties>;
-  }
+}
 
 interface OcppAuthenticationRequest<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>
 > {
   authenticateClient(session: TSession): void;
-  }
+}
 
 abstract class OcppMessageHandler<
   TMessage extends InboundOcppMessage
