@@ -16,12 +16,10 @@ abstract class AsyncHandler<TRequest> {
 
     return null as any;
   }
-}
 
-function mapHandlers<T>(handlers: AsyncHandler<T>[]) {
-  handlers.forEach((handler: AsyncHandler<T>, i: number) => {
-    handler.next = handlers[i + 1];
-  });
+  static map<THandler extends AsyncHandler<unknown>>(handlers: THandler[]): THandler[] {
+    return handlers.map((handler, i) => (handler.next = handlers[i + 1]));
+}
 }
 
 abstract class OcppAuthenticationHandler<
@@ -46,4 +44,4 @@ abstract class OcppMessageHandler<
 }
 
 export default AsyncHandler;
-export { mapHandlers, OcppAuthenticationHandler, OcppAuthenticationProperties, OcppMessageHandler };
+export { AsyncHandler, OcppAuthenticationHandler, OcppAuthenticationProperties, OcppMessageHandler };

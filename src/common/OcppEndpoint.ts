@@ -5,12 +5,7 @@ import TypedEmitter from 'typed-emitter';
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import { InboundOcppMessage, OutboundOcppMessage } from '../types/ocpp/OcppMessage';
-import {
-  mapHandlers,
-  OcppAuthenticationHandler,
-  OcppMessageHandler,
-  OcppAuthenticationProperties,
-} from './OcppHandlers';
+import { AsyncHandler, OcppAuthenticationHandler, OcppMessageHandler } from './OcppHandlers';
 
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
@@ -45,13 +40,10 @@ abstract class OcppEndpoint<
     authenticationHandlers: TAuthenticationHandler[],
     messageHandlers: TMessageHandler[]
   ) {
-    mapHandlers<TAuthenticationProperties>(authenticationHandlers);
-    mapHandlers<TInboundMessage>(messageHandlers);
-
     super();
     this.config = config;
-    this.authenticationHandlers = authenticationHandlers;
-    this.messageHandlers = messageHandlers;
+    this.authenticationHandlers = AsyncHandler.map(authHandlers);
+    this.messageHandlers = AsyncHandler.map(messageHandlers);
     this.sessions = new Array<TSession>();
     this.handleCreate();
   }
