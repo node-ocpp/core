@@ -4,7 +4,7 @@ import TypedEmitter from 'typed-emitter';
 
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
-import { InboundOcppMessage, OutboundOcppMessage } from '../types/ocpp/OcppMessage';
+import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import {
   AsyncHandler,
   OcppAuthenticationHandler,

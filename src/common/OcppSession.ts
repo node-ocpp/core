@@ -1,11 +1,11 @@
-import { InboundOcppMessage } from '../types/ocpp/OcppMessage';
+import OcppMessage from './OcppMessage';
 import OcppClient from './OcppClient';
 
 abstract class OcppSession<TClient extends OcppClient> {
   abstract get isActive(): boolean;
 
   private _client: TClient;
-  private _pendingMessage!: InboundOcppMessage;
+  private _pendingMessage!: OcppMessage;
 
   constructor(client: TClient) {
     this._client = client;
@@ -19,7 +19,7 @@ abstract class OcppSession<TClient extends OcppClient> {
     return this._pendingMessage;
   }
 
-  set pendingMessage(message: InboundOcppMessage) {
+  set pendingMessage(message: OcppMessage) {
     this._pendingMessage = message;
   }
 }

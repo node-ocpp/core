@@ -1,6 +1,6 @@
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
-import { InboundOcppMessage } from '../types/ocpp/OcppMessage';
+import { InboundOcppMessage } from './OcppMessage';
 
 abstract class AsyncHandler<TRequest> {
   private _next!: AsyncHandler<TRequest>;
