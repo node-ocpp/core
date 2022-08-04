@@ -58,6 +58,7 @@ abstract class OcppEndpoint<
       throw new Error('Endpoint is already listening for connections');
     }
 
+    this.emit('server_starting', this.config);
     await this.handleListen();
     this.emit('server_listening', this.config);
   }
@@ -67,6 +68,7 @@ abstract class OcppEndpoint<
       throw new Error('Endpoint is currently not listening for connections');
     }
 
+    this.emit('server_stopping');
     await this.handleStop();
     this.emit('server_stopped');
   }
@@ -113,7 +115,9 @@ abstract class OcppEndpoint<
 }
 
 type OcppEndpointEvents = {
+  server_starting: (error: unknown) => void;
   server_listening: (config: OcppEndpointConfig) => void;
+  server_stopping: () => void;
   server_stopped: () => void;
   client_connected: (client: OcppClient) => void;
   client_disconnected: (client: OcppClient) => void;
