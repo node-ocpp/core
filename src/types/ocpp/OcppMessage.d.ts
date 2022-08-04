@@ -30,6 +30,7 @@ declare type InboundOcppMessage = OcppMessage & {
 declare type OutboundOcppMessage = OcppMessage & {
   get recipient(): OcppClient;
   get state(): OutboundOcppMessageState;
+  set state(state: OutboundOcppMessageState);
 };
 
 declare enum OutboundOcppMessageState {
