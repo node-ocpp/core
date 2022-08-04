@@ -19,6 +19,8 @@ declare type OcppMessagePayload = OcppMessageValue | null | {};
 declare type OcppMessage = {
   type: OcppMessageType;
   get id(): string;
+  get raw(): string;
+  get timestamp(): Date | null;
 };
 
 declare type InboundOcppMessage = OcppMessage & {
