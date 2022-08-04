@@ -5,7 +5,12 @@ import TypedEmitter from 'typed-emitter';
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
 import { InboundOcppMessage, OutboundOcppMessage } from '../types/ocpp/OcppMessage';
-import { AsyncHandler, OcppAuthenticationHandler, OcppMessageHandler } from './OcppHandlers';
+import {
+  AsyncHandler,
+  OcppAuthenticationHandler,
+  OcppAuthenticationRequest,
+  OcppMessageHandler,
+} from './OcppHandlers';
 
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
@@ -14,11 +19,11 @@ abstract class OcppEndpoint<
   TInboundMessage extends InboundOcppMessage,
   TOutboundMessage extends OutboundOcppMessage,
   TMessageHandler extends OcppMessageHandler<TInboundMessage>,
-  TAuthenticationProperties extends OcppAuthenticationProperties<TClient, TSession>,
+  TAuthenticationRequest extends OcppAuthenticationRequest<TClient, TSession>,
   TAuthenticationHandler extends OcppAuthenticationHandler<
     TClient,
     TSession,
-    TAuthenticationProperties
+    TAuthenticationRequest
   >
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
