@@ -131,3 +131,6 @@ type OcppEndpointConfig = {
   port: number;
   messageTimeout: number;
 };
+
+export default OcppEndpoint;
+export { OcppEndpointEvents, OcppEndpointConfig };
