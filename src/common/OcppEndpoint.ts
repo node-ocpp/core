@@ -88,6 +88,10 @@ abstract class OcppEndpoint<
     return session || false;
   }
 
+  protected onConnectionAttempt(properties: TAuthenticationRequest) {
+    this.authenticationHandlers[0].handle(properties);
+  }
+
   protected onClientConnected(session: TSession) {
     if (this.getSession(session.client.id)) {
       throw new Error(`Client with id ${session.client.id} is already connected`);
