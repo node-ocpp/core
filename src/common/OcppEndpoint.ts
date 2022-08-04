@@ -45,7 +45,7 @@ abstract class OcppEndpoint<
   ) {
     super();
     this.config = config;
-    this.authenticationHandlers = AsyncHandler.map(authHandlers);
+    this.authenticationHandlers = AsyncHandler.map(authenticationHandlers);
     this.messageHandlers = AsyncHandler.map(messageHandlers);
     this.sessions = new Array<TSession>();
     this.handleCreate();
