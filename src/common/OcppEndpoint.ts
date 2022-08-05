@@ -9,7 +9,8 @@ import {
   AsyncHandler,
   OcppAuthenticationHandler,
   OcppAuthenticationRequest,
-  OcppMessageHandler,
+  InboundOcppMessageHandler,
+  OutboundOcppMessageHandler,
 } from './OcppHandlers';
 
 abstract class OcppEndpoint<
@@ -18,7 +19,8 @@ abstract class OcppEndpoint<
   TSession extends OcppSession<TClient>,
   TInboundMessage extends InboundOcppMessage,
   TOutboundMessage extends OutboundOcppMessage,
-  TMessageHandler extends OcppMessageHandler<TInboundMessage>,
+  TInboundMessageHandler extends InboundOcppMessageHandler<TInboundMessage>,
+  TOutboundMessageHandler extends OutboundOcppMessageHandler<TOutboundMessage>,
   TAuthenticationRequest extends OcppAuthenticationRequest<TClient, TSession>,
   TAuthenticationHandler extends OcppAuthenticationHandler<
     TClient,
@@ -30,25 +32,27 @@ abstract class OcppEndpoint<
 
   private sessions: TSession[];
   private authenticationHandlers: TAuthenticationHandler[];
-  private messageHandlers: TMessageHandler[];
+  private inboundMessageHandlers: TInboundMessageHandler[];
+  private outboundMessageHandlers: TOutboundMessageHandler[];
 
   protected abstract get isListening(): boolean;
   protected abstract handleCreate(): void;
   protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
-  protected abstract handleOutboundMessage(message: TOutboundMessage): Promise<TInboundMessage>;
 
   constructor(
     config: TConfig,
     authenticationHandlers: TAuthenticationHandler[],
-    messageHandlers: TMessageHandler[]
+    inboundMessageHandlers: TInboundMessageHandler[],
+    outboundMessageHandlers: TOutboundMessageHandler[]
   ) {
     super();
     this.handleCreate();
     this.config = config;
     this.authenticationHandlers.concat(AsyncHandler.map(authenticationHandlers));
-    this.messageHandlers = AsyncHandler.map(messageHandlers);
+    this.inboundMessageHandlers.concat(AsyncHandler.map(inboundMessageHandlers));
+    this.outboundMessageHandlers.concat(AsyncHandler.map(outboundMessageHandlers));
     this.sessions = new Array<TSession>();
     this.handleCreated();
   }
@@ -80,7 +84,7 @@ abstract class OcppEndpoint<
       throw new Error(`Client with id ${message.recipient.id} is currently not connected`);
     }
 
-    await this.handleOutboundMessage(message);
+    await this.outboundMessageHandlers[0].handle(message);
     this.emit('message_sent', message);
   }
 
@@ -114,7 +118,7 @@ abstract class OcppEndpoint<
 
   protected onInboundMessage(message: TInboundMessage) {
     this.emit('message_received', message);
-    this.messageHandlers[0].handle(message);
+    this.inboundMessageHandlers[0].handle(message);
   }
 }
 
