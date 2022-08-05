@@ -1,5 +1,6 @@
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
+import { InboundOcppMessageHandler, OutboundOcppMessageHandler } from './OcppHandlers';
 
 enum OcppMessageType {
   CALL = 2,
@@ -122,22 +123,20 @@ abstract class OutboundOcppMessage<
   }
 }
 
-type OcppResponseHandler<TResponse extends OcppMessage> = (response: TResponse) => Promise<void>;
-
 abstract class RespondableOcppMessage<
   TResponse extends OutboundOcppMessage,
   TClient extends OcppClient = OcppClient,
   TSession extends OcppSession<TClient> = OcppSession<TClient>,
   TContext extends OcppMessageContext<unknown, TClient, TSession> = null
 > extends InboundOcppMessage<TClient, TSession, TContext> {
-  private _responseHandler?: OcppResponseHandler<TResponse>;
+  private _responseHandler?: OutboundOcppMessageHandler<TResponse>;
   private _isResponded: boolean;
   private _response?: OutboundOcppMessage;
 
   constructor(
     id: string,
     sender: OcppClient,
-    responseHandler?: OcppResponseHandler<TResponse>,
+    responseHandler?: OutboundOcppMessageHandler<TResponse>,
     context?: TContext
   ) {
     super(id, sender, context);
@@ -151,12 +150,12 @@ abstract class RespondableOcppMessage<
       throw new Error('respond() was called but responseHandler is not set');
     }
 
-    await this._responseHandler(response);
+    await this._responseHandler.handle(response);
     this._isResponded = true;
     this._response = response;
   }
 
-  set responseHandler(handler: OcppResponseHandler<TResponse>) {
+  set responseHandler(handler: OutboundOcppMessageHandler<TResponse>) {
     this._responseHandler = handler;
   }
 
@@ -175,14 +174,14 @@ abstract class ResultingOcppMessage<
   TSession extends OcppSession<TClient> = OcppSession<TClient>,
   TContext extends OcppMessageContext<unknown, TClient, TSession> = null
 > extends OutboundOcppMessage<TClient, TSession, TContext> {
-  private _responseHandler?: OcppResponseHandler<TResponse>;
+  private _responseHandler?: InboundOcppMessageHandler<TResponse>;
   private _hasResponse: boolean;
   private _response?: TResponse;
 
   constructor(
     id: string,
     recipient?: OcppClient,
-    responseHandler?: OcppResponseHandler<TResponse>,
+    responseHandler?: InboundOcppMessageHandler<TResponse>,
     context?: TContext
   ) {
     super(id, recipient, context);
@@ -191,13 +190,13 @@ abstract class ResultingOcppMessage<
     this._response = null;
   }
 
-  onResponse(response: TResponse) {
+  async onResponse(response: TResponse) {
     this._hasResponse = true;
     this._response = response;
-    this._responseHandler(response);
+    await this._responseHandler.handle(response);
   }
 
-  set responseHandler(handler: OcppResponseHandler<TResponse>) {
+  set responseHandler(handler: InboundOcppMessageHandler<TResponse>) {
     this._responseHandler = handler;
   }
 
