@@ -25,9 +25,9 @@ abstract class AsyncHandler<TRequest> {
 abstract class OcppAuthenticationHandler<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
-  TAuthenticationProperties extends OcppAuthenticationRequest<TClient, TSession>
-> extends AsyncHandler<TAuthenticationProperties> {
-  abstract handle(properties: TAuthenticationProperties): Promise<TAuthenticationProperties>;
+  TAuthenticationRequest extends OcppAuthenticationRequest<TClient, TSession>
+> extends AsyncHandler<TAuthenticationRequest> {
+  abstract handle(request: TAuthenticationRequest): Promise<TAuthenticationRequest>;
 }
 
 interface OcppAuthenticationRequest<
