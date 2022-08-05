@@ -1,6 +1,6 @@
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
-import { InboundOcppMessage } from './OcppMessage';
+import OcppMessage, { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 
 abstract class AsyncHandler<TRequest> {
   private _next!: AsyncHandler<TRequest>;
@@ -38,10 +38,28 @@ interface OcppAuthenticationRequest<
 }
 
 abstract class OcppMessageHandler<
-  TMessage extends InboundOcppMessage
+  TMessage extends OcppMessage = OcppMessage
 > extends AsyncHandler<TMessage> {
   abstract handle(message: TMessage): Promise<TMessage>;
 }
 
+abstract class InboundOcppMessageHandler<
+  TMessage extends InboundOcppMessage
+> extends OcppMessageHandler<TMessage> {
+  abstract handle(message: TMessage): Promise<TMessage>;
+}
+
+abstract class OutboundOcppMessageHandler<
+  TMessage extends OutboundOcppMessage
+> extends OcppMessageHandler<TMessage> {
+  abstract handle(message: TMessage): Promise<TMessage>;
+}
+
 export default AsyncHandler;
-export { AsyncHandler, OcppAuthenticationHandler, OcppAuthenticationRequest, OcppMessageHandler };
+export {
+  AsyncHandler,
+  OcppAuthenticationHandler,
+  OcppAuthenticationRequest,
+  InboundOcppMessageHandler,
+  OutboundOcppMessageHandler,
+};
