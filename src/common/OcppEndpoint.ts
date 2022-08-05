@@ -119,7 +119,7 @@ abstract class OcppEndpoint<
 }
 
 type OcppEndpointEvents = {
-  server_starting: (error: unknown) => void;
+  server_starting: (config: OcppEndpointConfig) => void;
   server_listening: (config: OcppEndpointConfig) => void;
   server_stopping: () => void;
   server_stopped: () => void;
