@@ -34,6 +34,7 @@ abstract class OcppEndpoint<
 
   protected abstract get isListening(): boolean;
   protected abstract handleCreate(): void;
+  protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
   protected abstract handleOutboundMessage(message: TOutboundMessage): Promise<TInboundMessage>;
@@ -44,11 +45,12 @@ abstract class OcppEndpoint<
     messageHandlers: TMessageHandler[]
   ) {
     super();
+    this.handleCreate();
     this.config = config;
-    this.authenticationHandlers = AsyncHandler.map(authenticationHandlers);
+    this.authenticationHandlers.concat(AsyncHandler.map(authenticationHandlers));
     this.messageHandlers = AsyncHandler.map(messageHandlers);
     this.sessions = new Array<TSession>();
-    this.handleCreate();
+    this.handleCreated();
   }
 
   public async listen() {
