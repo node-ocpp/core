@@ -1,5 +1,6 @@
 import { InboundOcppCall } from '../../common/OcppCallMessage';
 import { OutboundOcppCallResult } from '../../common/OcppCallResultMessage';
+import IdToken from '../structs/IdToken';
 
 declare type AuthorizeRequest = InboundOcppCall<
   AuthorizeRequestPayload,
@@ -21,10 +22,6 @@ declare type IdTagInfo = {
   expiryDate?: Date;
   parentIdTag?: IdToken;
   status: AuthorizationStatus;
-};
-
-declare type IdToken = {
-  IdToken: string;
 };
 
 declare type AuthorizationStatus = 'Accepted' | 'Blocked' | 'Expired' | 'Invalid' | 'ConcurrentTx';
