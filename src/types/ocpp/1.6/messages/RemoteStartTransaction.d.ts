@@ -1,5 +1,5 @@
-import { OutboundOcppCall } from '../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../common/OcppCallResultMessage';
+import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
+import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
 import IdToken from '../structs/IdToken';
 import ChargingProfile from '../structs/ChargingProfile';
 import RemoteStartStopStatus from '../structs/RemoteStartStopStatus';

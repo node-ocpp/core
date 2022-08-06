@@ -1,5 +1,5 @@
-import { InboundOcppCall } from '../../common/OcppCallMessage';
-import { OutboundOcppCallResult } from '../../common/OcppCallResultMessage';
+import { InboundOcppCall } from '../../../../common/OcppCallMessage';
+import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
 import IdToken from '../structs/IdToken';
 import MeterValue from '../structs/MeterValue';
 import IdTagInfo from '../structs/IdTagInfo';
