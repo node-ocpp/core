@@ -44,13 +44,13 @@ abstract class OcppMessageHandler<
 }
 
 abstract class InboundOcppMessageHandler<
-  TMessage extends InboundOcppMessage
+  TMessage extends InboundOcppMessage = InboundOcppMessage
 > extends OcppMessageHandler<TMessage> {
   abstract handle(message: TMessage): Promise<TMessage>;
 }
 
 abstract class OutboundOcppMessageHandler<
-  TMessage extends OutboundOcppMessage
+  TMessage extends OutboundOcppMessage = OutboundOcppMessage
 > extends OcppMessageHandler<TMessage> {
   abstract handle(message: TMessage): Promise<TMessage>;
 }

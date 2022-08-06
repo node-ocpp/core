@@ -18,10 +18,6 @@ abstract class OcppEndpoint<
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
   TSessionService extends OcppSessionService<TClient, TSession>,
-  TInboundMessage extends InboundOcppMessage,
-  TOutboundMessage extends OutboundOcppMessage,
-  TInboundMessageHandler extends InboundOcppMessageHandler<TInboundMessage>,
-  TOutboundMessageHandler extends OutboundOcppMessageHandler<TOutboundMessage>,
   TAuthenticationRequest extends OcppAuthenticationRequest<TClient, TSession>,
   TAuthenticationHandler extends OcppAuthenticationHandler<
     TClient,
@@ -33,22 +29,22 @@ abstract class OcppEndpoint<
 
   private sessionService: TSessionService;
   private authenticationHandlers: TAuthenticationHandler[];
-  private inboundMessageHandlers: TInboundMessageHandler[];
-  private outboundMessageHandlers: TOutboundMessageHandler[];
+  private inboundMessageHandlers: InboundOcppMessageHandler[];
+  private outboundMessageHandlers: OutboundOcppMessageHandler[];
 
   protected abstract get isListening(): boolean;
   protected abstract handleCreate(): void;
   protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
-  protected abstract handleSendMessage(message: TOutboundMessage): Promise<void>;
+  protected abstract handleSendMessage(message: OutboundOcppMessage): Promise<void>;
 
   constructor(
     config: TConfig,
     sessionService: TSessionService,
     authenticationHandlers: TAuthenticationHandler[],
-    inboundMessageHandlers: TInboundMessageHandler[],
-    outboundMessageHandlers: TOutboundMessageHandler[]
+    inboundMessageHandlers: InboundOcppMessageHandler[],
+    outboundMessageHandlers: OutboundOcppMessageHandler[]
   ) {
     super();
     this.handleCreate();
@@ -80,7 +76,7 @@ abstract class OcppEndpoint<
     this.emit('server_stopped');
   }
 
-  public async sendMessage(message: TOutboundMessage) {
+  public async sendMessage(message: OutboundOcppMessage) {
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
     } else if (!this.sessionService.has(message.recipient.id)) {
@@ -114,7 +110,7 @@ abstract class OcppEndpoint<
     this.emit('client_disconnected', session.client);
   }
 
-  protected onInboundMessage(message: TInboundMessage) {
+  protected onInboundMessage(message: InboundOcppMessage) {
     this.emit('message_received', message);
     this.inboundMessageHandlers[0].handle(message);
   }
