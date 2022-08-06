@@ -1,5 +1,5 @@
-import { InboundOcppCall } from '../OcppCallMessage';
-import { OutboundOcppCallResult } from '../OcppCallResultMessage';
+import { InboundOcppCall } from '../../common/OcppCallMessage';
+import { OutboundOcppCallResult } from '../../common/OcppCallResultMessage';
 
 declare type BootNotificationRequest = InboundOcppCall<
   BootNotificationRequestPayload,

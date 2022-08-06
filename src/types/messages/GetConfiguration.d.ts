@@ -1,5 +1,5 @@
-import { OutboundOcppCall } from '../OcppCallMessage';
-import { InboundOcppCallResult } from '../OcppCallResultMessage';
+import { OutboundOcppCall } from '../../common/OcppCallMessage';
+import { InboundOcppCallResult } from '../../common/OcppCallResultMessage';
 
 declare type GetConfigurationRequest = OutboundOcppCall<
   GetConfigurationRequestPayload,
