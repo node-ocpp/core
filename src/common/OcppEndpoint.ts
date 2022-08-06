@@ -4,6 +4,7 @@ import TypedEmitter from 'typed-emitter';
 
 import OcppClient from './OcppClient';
 import OcppSession from './OcppSession';
+import OcppSessionService from './OcppSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import {
   AsyncHandler,
@@ -17,6 +18,7 @@ abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
   TClient extends OcppClient,
   TSession extends OcppSession<TClient>,
+  TSessionService extends OcppSessionService<TClient, TSession>,
   TInboundMessage extends InboundOcppMessage,
   TOutboundMessage extends OutboundOcppMessage,
   TInboundMessageHandler extends InboundOcppMessageHandler<TInboundMessage>,
@@ -30,7 +32,7 @@ abstract class OcppEndpoint<
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
-  private sessions: TSession[];
+  private sessionService: TSessionService;
   private authenticationHandlers: TAuthenticationHandler[];
   private inboundMessageHandlers: TInboundMessageHandler[];
   private outboundMessageHandlers: TOutboundMessageHandler[];
@@ -43,6 +45,7 @@ abstract class OcppEndpoint<
 
   constructor(
     config: TConfig,
+    sessionService: TSessionService,
     authenticationHandlers: TAuthenticationHandler[],
     inboundMessageHandlers: TInboundMessageHandler[],
     outboundMessageHandlers: TOutboundMessageHandler[]
@@ -50,10 +53,10 @@ abstract class OcppEndpoint<
     super();
     this.handleCreate();
     this.config = config;
+    this.sessionService = sessionService;
     this.authenticationHandlers.concat(AsyncHandler.map(authenticationHandlers));
     this.inboundMessageHandlers.concat(AsyncHandler.map(inboundMessageHandlers));
     this.outboundMessageHandlers.concat(AsyncHandler.map(outboundMessageHandlers));
-    this.sessions = new Array<TSession>();
     this.handleCreated();
   }
 
@@ -80,7 +83,7 @@ abstract class OcppEndpoint<
   public async sendMessage(message: TOutboundMessage) {
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
-    } else if (!this.getSession(message.recipient.id)) {
+    } else if (!this.sessionService.has(message.recipient.id)) {
       throw new Error(`Client with id ${message.recipient.id} is currently not connected`);
     }
 
@@ -88,31 +91,25 @@ abstract class OcppEndpoint<
     this.emit('message_sent', message);
   }
 
-  public getSession(clientId: string): TSession | false {
-    const session = this.sessions.find(_session => _session.client.id === clientId);
-
-    return session || false;
-  }
-
   protected onConnectionAttempt(properties: TAuthenticationRequest) {
     this.authenticationHandlers[0].handle(properties);
   }
 
   protected onClientConnected(session: TSession) {
-    if (this.getSession(session.client.id)) {
+    if (this.sessionService.has(session.client.id)) {
       throw new Error(`Client with id ${session.client.id} is already connected`);
     }
 
-    this.sessions.push(session);
+    this.sessionService.add(session);
     this.emit('client_connected', session.client);
   }
 
   protected onClientDisconnected(session: TSession) {
-    if (!this.getSession(session.client.id)) {
+    if (!this.sessionService.has(session.client.id)) {
       throw new Error(`Client with id ${session.client.id} is currently not connected`);
     }
 
-    this.sessions = this.sessions.filter(_session => _session.client.id !== session.client.id);
+    this.sessionService.remove(session);
     this.emit('client_disconnected', session.client);
   }
 
