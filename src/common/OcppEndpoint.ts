@@ -41,6 +41,7 @@ abstract class OcppEndpoint<
   protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
+  protected abstract handleSendMessage(message: TOutboundMessage): Promise<void>;
 
   constructor(
     config: TConfig,
@@ -87,6 +88,7 @@ abstract class OcppEndpoint<
     }
 
     await this.outboundMessageHandlers[0].handle(message);
+    await this.handleSendMessage(message);
     this.emit('message_sent', message);
   }
 
