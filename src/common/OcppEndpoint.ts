@@ -131,8 +131,11 @@ type OcppEndpointEvents = {
 
 type OcppEndpointConfig = {
   port: number;
+  protocols: OcppProtocolVersion[];
   messageTimeout: number;
 };
 
+type OcppProtocolVersion = 'ocpp1.5' | 'ocpp1.6' | 'ocpp2.0' | 'ocpp2.0.1';
+
 export default OcppEndpoint;
-export { OcppEndpointEvents, OcppEndpointConfig };
+export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };

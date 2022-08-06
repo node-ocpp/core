@@ -1,5 +1,6 @@
 import OcppMessage from './OcppMessage';
 import OcppClient from './OcppClient';
+import { OcppProtocolVersion } from './OcppEndpoint';
 
 abstract class OcppSession<TClient extends OcppClient> {
   abstract get isActive(): boolean;
@@ -29,8 +30,6 @@ abstract class OcppSession<TClient extends OcppClient> {
     this._pendingMessage = message;
   }
 }
-
-type OcppProtocolVersion = 'ocpp1.5' | 'ocpp1.6' | 'ocpp2.0' | 'ocpp2.0.1';
 
 interface OcppSessionService<
   TClient extends OcppClient = OcppClient,
