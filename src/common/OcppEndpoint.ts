@@ -41,18 +41,19 @@ abstract class OcppEndpoint<
 
   constructor(
     config: TConfig,
-    sessionService: TSessionService,
     authenticationHandlers: TAuthenticationHandler[],
     inboundMessageHandlers: InboundOcppMessageHandler[],
-    outboundMessageHandlers: OutboundOcppMessageHandler[]
+    outboundMessageHandlers: OutboundOcppMessageHandler[],
+    sessionService: TSessionService
   ) {
     super();
     this.handleCreate();
     this.config = config;
-    this.sessionService = sessionService;
     this.authenticationHandlers.concat(AsyncHandler.map(authenticationHandlers));
     this.inboundMessageHandlers.concat(AsyncHandler.map(inboundMessageHandlers));
     this.outboundMessageHandlers.concat(AsyncHandler.map(outboundMessageHandlers));
+    this.sessionService = sessionService;
+    this.sessionService.init();
     this.handleCreated();
   }
 
