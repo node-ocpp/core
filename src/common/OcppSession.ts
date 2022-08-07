@@ -2,14 +2,14 @@ import OcppMessage from './OcppMessage';
 import OcppClient from './OcppClient';
 import { OcppProtocolVersion } from './OcppEndpoint';
 
-abstract class OcppSession<TClient extends OcppClient> {
+abstract class OcppSession {
   abstract get isActive(): boolean;
 
-  private _client: TClient;
+  private _client: OcppClient;
   private _protocol: OcppProtocolVersion;
-  private _pendingMessage!: OcppMessage;
+  private _pendingMessage?: OcppMessage;
 
-  constructor(client: TClient, protocol: OcppProtocolVersion) {
+  constructor(client: OcppClient, protocol: OcppProtocolVersion) {
     this._client = client;
     this._protocol = protocol;
   }
@@ -31,18 +31,15 @@ abstract class OcppSession<TClient extends OcppClient> {
   }
 }
 
-interface OcppSessionService<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>
-> {
+interface OcppSessionService {
   init(): Promise<void>;
-  add(sesion: TSession): Promise<void>;
-  has(session: TSession): Promise<boolean>;
+  add(sesion: OcppSession): Promise<void>;
+  has(session: OcppSession): Promise<boolean>;
   has(clientId: string): Promise<boolean>;
-  get(clientId: string): Promise<TSession>;
-  update(clientId: string, newSession: TSession): Promise<void>;
-  update(oldSession: TSession, newSession: TSession): Promise<void>;
-  remove(session: TSession): Promise<void>;
+  get(clientId: string): Promise<OcppSession>;
+  update(clientId: string, newSession: OcppSession): Promise<void>;
+  update(oldSession: OcppSession, newSession: OcppSession): Promise<void>;
+  remove(session: OcppSession): Promise<void>;
   remove(clientId: string): Promise<void>;
 }
 
