@@ -134,7 +134,13 @@ type OcppEndpointConfig = {
   messageTimeout: number;
 };
 
-type OcppProtocolVersion = 'ocpp1.5' | 'ocpp1.6' | 'ocpp2.0' | 'ocpp2.0.1';
+
+type OcppProtocolVersion =
+  | 'ocpp1.2'
+  | 'ocpp1.5'
+  | 'ocpp1.6'
+  | 'ocpp2.0'
+  | 'ocpp2.0.1';
 
 export default OcppEndpoint;
 export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };
