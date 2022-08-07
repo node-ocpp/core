@@ -1,7 +1,6 @@
 import OcppClient from './OcppClient';
-import OcppSession from './OcppSession';
 
-import OcppMessage, {
+import {
   OcppMessageType,
   OcppMessagePayload,
   InboundOcppMessage,
@@ -110,4 +109,4 @@ class OutboundOcppCallError extends OutboundOcppMessage {
   }
 }
 
-export { InboundOcppCallError, OutboundOcppCallError };
+export { InboundOcppCallError, OutboundOcppCallError, RPCError };
