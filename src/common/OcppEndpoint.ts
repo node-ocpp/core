@@ -38,6 +38,7 @@ abstract class OcppEndpoint<
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
   protected abstract handleSendMessage(message: OutboundOcppMessage): Promise<void>;
+  protected abstract handleDropSession(clientId: string): Promise<void>;
 
   constructor(
     config: TConfig,
@@ -129,11 +130,15 @@ type OcppEndpointEvents = {
 };
 
 type OcppEndpointConfig = {
-  port: number;
-  protocols: OcppProtocolVersion[];
-  messageTimeout: number;
+  port?: number;
+  protocols?: OcppProtocolVersion[];
+  messageTimeout?: number;
+  sessionTimeout?: number;
 };
 
+const DefaultOcppEndpointConfig = <OcppEndpointConfig>{
+  port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+};
 
 type OcppProtocolVersion =
   | 'ocpp1.2'
@@ -143,4 +148,4 @@ type OcppProtocolVersion =
   | 'ocpp2.0.1';
 
 export default OcppEndpoint;
-export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };
+export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion, DefaultOcppEndpointConfig };
