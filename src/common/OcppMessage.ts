@@ -1,5 +1,4 @@
 import OcppClient from './OcppClient';
-import OcppSession from './OcppSession';
 import { InboundOcppMessageHandler, OutboundOcppMessageHandler } from './OcppHandlers';
 
 enum OcppMessageType {
@@ -18,41 +17,13 @@ type OcppMessageValue =
 
 type OcppMessagePayload = OcppMessageValue | null | {};
 
-abstract class OcppMessageContext<
-  TOriginal,
-  TClient extends OcppClient,
-  TSession extends OcppSession<TClient>
-> {
-  private _original: TOriginal;
-  private _session: TSession;
-
-  constructor(original: TOriginal, session: TSession) {
-    this._original = original;
-    this._session = session;
-  }
-
-  get original() {
-    return this._original;
-  }
-
-  get session() {
-    return this._session;
-  }
-}
-
-abstract class OcppMessage<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> {
+abstract class OcppMessage {
   type!: OcppMessageType;
   private _id: string;
-  private _context?: TContext;
   protected _timestamp?: Date;
 
-  constructor(id: string, context?: TContext) {
+  constructor(id: string) {
     this._id = id;
-    this._context = context || null;
     this._timestamp = null;
   }
 
@@ -60,28 +31,16 @@ abstract class OcppMessage<
     return this._id;
   }
 
-  set context(context: TContext) {
-    this._context = context;
-  }
-
-  get context() {
-    return this._context;
-  }
-
   get timestamp() {
     return this._timestamp;
   }
 }
 
-abstract class InboundOcppMessage<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends OcppMessage<TClient, TSession, TContext> {
+abstract class InboundOcppMessage extends OcppMessage {
   protected _sender: OcppClient;
 
-  constructor(id: string, sender: OcppClient, context?: TContext) {
-    super(id, context);
+  constructor(id: string, sender: OcppClient) {
+    super(id);
     this._timestamp = new Date();
     this._sender = sender;
   }
@@ -91,16 +50,12 @@ abstract class InboundOcppMessage<
   }
 }
 
-abstract class OutboundOcppMessage<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends OcppMessage<TClient, TSession, TContext> {
+abstract class OutboundOcppMessage extends OcppMessage {
   _recipient?: OcppClient;
   _isSent: boolean;
 
-  constructor(id: string, recipient?: OcppClient, context?: TContext) {
-    super(id, context);
+  constructor(id: string, recipient?: OcppClient) {
+    super(id);
     this._recipient = recipient;
     this._isSent = false;
   }
@@ -124,21 +79,17 @@ abstract class OutboundOcppMessage<
 }
 
 abstract class RespondableOcppMessage<
-  TResponse extends OutboundOcppMessage,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends InboundOcppMessage<TClient, TSession, TContext> {
+  TResponse extends OutboundOcppMessage
+> extends InboundOcppMessage {
   private _responseHandler?: OutboundOcppMessageHandler<TResponse>;
   private _response?: OutboundOcppMessage;
 
   constructor(
     id: string,
     sender: OcppClient,
-    responseHandler?: OutboundOcppMessageHandler<TResponse>,
-    context?: TContext
+    responseHandler?: OutboundOcppMessageHandler<TResponse>
   ) {
-    super(id, sender, context);
+    super(id, sender);
     this._responseHandler = responseHandler || null;
     this._response = null;
   }
@@ -166,21 +117,17 @@ abstract class RespondableOcppMessage<
 }
 
 abstract class ResultingOcppMessage<
-  TResponse extends InboundOcppMessage,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends OutboundOcppMessage<TClient, TSession, TContext> {
+  TResponse extends InboundOcppMessage
+> extends OutboundOcppMessage {
   private _responseHandler?: InboundOcppMessageHandler<TResponse>;
   private _response?: TResponse;
 
   constructor(
     id: string,
     recipient?: OcppClient,
-    responseHandler?: InboundOcppMessageHandler<TResponse>,
-    context?: TContext
+    responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
-    super(id, recipient, context);
+    super(id, recipient);
     this._responseHandler = responseHandler || null;
     this._response = null;
   }
@@ -211,7 +158,6 @@ export default OcppMessage;
 export {
   OcppMessageType,
   OcppMessagePayload,
-  OcppMessageContext,
   InboundOcppMessage,
   OutboundOcppMessage,
   RespondableOcppMessage,

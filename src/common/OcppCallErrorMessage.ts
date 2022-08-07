@@ -4,7 +4,6 @@ import OcppSession from './OcppSession';
 import OcppMessage, {
   OcppMessageType,
   OcppMessagePayload,
-  OcppMessageContext,
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
@@ -23,18 +22,7 @@ type RPCError =
   | 'SecurityError'
   | 'TypeConstraintViolation';
 
-type OcppCallErrorMessage = OcppMessage & {
-  type: OcppMessageType.CALLERROR;
-  code: RPCError;
-  description: string;
-  details: OcppMessagePayload;
-};
-
-class InboundOcppCallError<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends InboundOcppMessage<TClient, TSession, TContext> {
+class InboundOcppCallError extends InboundOcppMessage {
   type: OcppMessageType.CALLERROR;
   private _code: RPCError;
   private _description: string;
@@ -42,13 +30,12 @@ class InboundOcppCallError<
 
   constructor(
     id: string,
-    sender: TClient,
+    sender: OcppClient,
     code: RPCError = 'GenericError',
     description = '',
-    details: OcppMessagePayload = {},
-    context?: TContext
+    details: OcppMessagePayload = {}
   ) {
-    super(id, sender, context);
+    super(id, sender);
     this._code = code;
     this._description = description;
     this._details = details;
@@ -79,11 +66,7 @@ class InboundOcppCallError<
   }
 }
 
-class OutboundOcppCallError<
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends OutboundOcppMessage<TClient, TSession, TContext> {
+class OutboundOcppCallError extends OutboundOcppMessage {
   type: OcppMessageType.CALLERROR;
   private _code: RPCError;
   private _description: string;
@@ -94,10 +77,9 @@ class OutboundOcppCallError<
     code: RPCError = 'GenericError',
     description = '',
     details: OcppMessagePayload = {},
-    recipient?: TClient,
-    context?: TContext
+    recipient?: OcppClient
   ) {
-    super(id, recipient, context);
+    super(id, recipient);
     this._code = code;
     this._description = description;
     this._details = details;
@@ -128,5 +110,4 @@ class OutboundOcppCallError<
   }
 }
 
-export default OcppCallErrorMessage;
 export { InboundOcppCallError, OutboundOcppCallError };

@@ -4,7 +4,6 @@ import { InboundOcppCallResult, OutboundOcppCallResult } from './OcppCallResultM
 import {
   OcppMessageType,
   OcppMessagePayload,
-  OcppMessageContext,
   RespondableOcppMessage,
   ResultingOcppMessage,
 } from './OcppMessage';
@@ -18,11 +17,8 @@ declare type InboundOcppCallResponse<TPayload extends OcppMessagePayload> =
 class InboundOcppCall<
   TPayload extends OcppMessagePayload,
   TResponsePayload extends OcppMessagePayload,
-  TResponse extends InboundOcppCallResponse<TResponsePayload>,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends RespondableOcppMessage<TResponse, TClient, TSession, TContext> {
+  TResponse extends InboundOcppCallResponse<TResponsePayload>
+> extends RespondableOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;
   private _data: TPayload;
@@ -32,10 +28,9 @@ class InboundOcppCall<
     sender: OcppClient,
     action: string,
     data: TPayload,
-    responseHandler?: OutboundOcppMessageHandler<TResponse>,
-    context?: TContext
+    responseHandler?: OutboundOcppMessageHandler<TResponse>
   ) {
-    super(id, sender, responseHandler, context);
+    super(id, sender, responseHandler);
     this._action = action;
     this._data = data;
   }
@@ -64,11 +59,8 @@ declare type OutboundOcppCallResponse<TPayload extends OcppMessagePayload> =
 class OutboundOcppCall<
   TPayload extends OcppMessagePayload,
   TResponsePayload extends OcppMessagePayload,
-  TResponse extends OutboundOcppCallResponse<TResponsePayload>,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends ResultingOcppMessage<TResponse, TClient, TSession, TContext> {
+  TResponse extends OutboundOcppCallResponse<TResponsePayload>
+> extends ResultingOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;
   private _data: TPayload;
@@ -77,11 +69,10 @@ class OutboundOcppCall<
     id: string,
     action: string,
     data: TPayload,
-    recipient?: TClient,
-    responseHandler?: InboundOcppMessageHandler<TResponse>,
-    context?: TContext
+    recipient?: OcppClient,
+    responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
-    super(id, recipient, responseHandler, context);
+    super(id, recipient, responseHandler);
     this._action = action;
     this._data = data;
   }

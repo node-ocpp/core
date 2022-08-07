@@ -3,22 +3,16 @@ import OcppSession from './OcppSession';
 import {
   OcppMessageType,
   OcppMessagePayload,
-  OcppMessageContext,
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
 
-class InboundOcppCallResult<
-  TPayload extends OcppMessagePayload,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends InboundOcppMessage<TClient, TSession, TContext> {
+class InboundOcppCallResult<TPayload extends OcppMessagePayload> extends InboundOcppMessage {
   type: OcppMessageType.CALLRESULT;
   private _data: TPayload;
 
-  constructor(id: string, sender: TClient, data: TPayload, context: TContext) {
-    super(id, sender, context);
+  constructor(id: string, sender: OcppClient, data: TPayload) {
+    super(id, sender);
     this._data = data;
   }
 
@@ -31,17 +25,12 @@ class InboundOcppCallResult<
   }
 }
 
-class OutboundOcppCallResult<
-  TPayload extends OcppMessagePayload,
-  TClient extends OcppClient = OcppClient,
-  TSession extends OcppSession<TClient> = OcppSession<TClient>,
-  TContext extends OcppMessageContext<unknown, TClient, TSession> = null
-> extends OutboundOcppMessage<TClient, TSession, TContext> {
+class OutboundOcppCallResult<TPayload extends OcppMessagePayload> extends OutboundOcppMessage {
   type: OcppMessageType.CALLRESULT;
   private _data: TPayload;
 
-  constructor(id: string, data: TPayload, recipient?: TClient, context?: TContext) {
-    super(id, recipient, context);
+  constructor(id: string, data: TPayload, recipient?: OcppClient) {
+    super(id, recipient);
     this._data = data;
   }
 
