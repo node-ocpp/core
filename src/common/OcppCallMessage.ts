@@ -10,22 +10,14 @@ import {
   ResultingOcppMessage,
 } from './OcppMessage';
 import {
-  InboundOcppCallError,
-  OutboundOcppCallError,
-} from './OcppCallErrorMessage';
-import {
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 } from './OcppHandlers';
 
-declare type InboundOcppCallResponse<TPayload extends OcppMessagePayload> =
-  | OutboundOcppCallResult<TPayload>
-  | OutboundOcppCallError;
-
 class InboundOcppCall<
   TPayload extends OcppMessagePayload,
   TResponsePayload extends OcppMessagePayload,
-  TResponse extends InboundOcppCallResponse<TResponsePayload>
+  TResponse extends OutboundOcppCallResult<TResponsePayload>
 > extends RespondableOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;
@@ -60,14 +52,10 @@ class InboundOcppCall<
   }
 }
 
-declare type OutboundOcppCallResponse<TPayload extends OcppMessagePayload> =
-  | InboundOcppCallResult<TPayload>
-  | InboundOcppCallError;
-
 class OutboundOcppCall<
   TPayload extends OcppMessagePayload,
   TResponsePayload extends OcppMessagePayload,
-  TResponse extends OutboundOcppCallResponse<TResponsePayload>
+  TResponse extends InboundOcppCallResult<TResponsePayload>
 > extends ResultingOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;
