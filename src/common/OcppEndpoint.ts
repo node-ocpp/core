@@ -38,7 +38,7 @@ abstract class OcppEndpoint<
     config: TConfig,
     authenticationHandlers: TAuthenticationHandler[],
     inboundMessageHandlers: InboundOcppMessageHandler[],
-    outboundMessageHandlers: OutboundOcppMessageHandler[],
+    outboundMessageHandlers?: OutboundOcppMessageHandler[],
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
