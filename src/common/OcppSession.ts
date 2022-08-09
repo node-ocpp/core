@@ -1,10 +1,11 @@
-import OcppMessage from './OcppMessage';
+import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OcppProtocolVersion } from './OcppEndpoint';
 
 abstract class OcppSession {
   private _client: OcppClient;
   private _protocol: OcppProtocolVersion;
-  private _pendingMessage?: OcppMessage;
+  private _pendingInboundMessage?: InboundOcppMessage;
+  private _pendingOutboundMessage?: OutboundOcppMessage;
 
   constructor(client: OcppClient, protocol: OcppProtocolVersion) {
     this._client = client;
@@ -19,12 +20,20 @@ abstract class OcppSession {
     return this._protocol;
   }
 
-  get pendingMessage() {
-    return this._pendingMessage;
+  get pendingInboundMessage() {
+    return this._pendingInboundMessage;
   }
 
-  set pendingMessage(message: OcppMessage) {
-    this._pendingMessage = message;
+  set pendingInboundMessage(message: InboundOcppMessage) {
+    this._pendingInboundMessage = message;
+  }
+
+  get pendingOutboundMessage() {
+    return this._pendingOutboundMessage;
+  }
+
+  set pendingOutboundMessage(message: OutboundOcppMessage) {
+    this._pendingOutboundMessage = message;
   }
 }
 
