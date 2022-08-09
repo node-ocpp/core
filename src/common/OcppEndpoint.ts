@@ -1,6 +1,7 @@
 /* eslint-disable node/no-unpublished-import */
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
+import merge from 'lodash.merge';
 
 import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
@@ -17,7 +18,7 @@ import {
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
   TAuthenticationRequest extends OcppAuthenticationRequest,
-  TAuthenticationHandler extends OcppAuthenticationHandler<TAuthenticationRequest> = OcppAuthenticationHandler<TAuthenticationRequest>
+  TAuthenticationHandler extends OcppAuthenticationHandler<TAuthenticationRequest>
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
@@ -41,8 +42,8 @@ abstract class OcppEndpoint<
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
+    this.config = merge(DefaultOcppEndpointConfig, config);
 
-    this.config = config;
     this.authenticationHandlers.concat(
       AsyncHandler.map(authenticationHandlers)
     );
@@ -52,6 +53,7 @@ abstract class OcppEndpoint<
     this.outboundMessageHandlers.concat(
       AsyncHandler.map(outboundMessageHandlers)
     );
+
     this.sessionService = sessionService;
     this.sessionService.create();
     this.handleCreate();
@@ -162,6 +164,9 @@ type OcppEndpointConfig = {
 
 const DefaultOcppEndpointConfig = <OcppEndpointConfig>{
   port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+  protocols: ['ocpp1.2', 'ocpp1.5', 'ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'],
+  messageTimeout: 30000,
+  sessionTimeout: 60000,
 };
 
 type OcppProtocolVersion =

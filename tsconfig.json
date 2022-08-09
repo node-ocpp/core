@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "build",
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "esModuleInterop": true
   },
   "include": [
     "src/**/*.ts",
