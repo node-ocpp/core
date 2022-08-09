@@ -15,9 +15,9 @@ import {
 } from './OcppHandlers';
 
 class InboundOcppCall<
-  TPayload extends OcppMessagePayload,
-  TResponsePayload extends OcppMessagePayload,
-  TResponse extends OutboundOcppCallResult<TResponsePayload>
+  TPayload extends OcppMessagePayload = unknown,
+  TResponsePayload extends OcppMessagePayload = unknown,
+  TResponse extends OutboundOcppCallResult<TResponsePayload> = undefined
 > extends RespondableOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;
@@ -53,9 +53,9 @@ class InboundOcppCall<
 }
 
 class OutboundOcppCall<
-  TPayload extends OcppMessagePayload,
-  TResponsePayload extends OcppMessagePayload,
-  TResponse extends InboundOcppCallResult<TResponsePayload>
+  TPayload extends OcppMessagePayload = unknown,
+  TResponsePayload extends OcppMessagePayload = unknown,
+  TResponse extends InboundOcppCallResult<TResponsePayload> = undefined
 > extends ResultingOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
   private _action: string;

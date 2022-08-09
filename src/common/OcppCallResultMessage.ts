@@ -7,7 +7,7 @@ import {
 } from './OcppMessage';
 
 class InboundOcppCallResult<
-  TPayload extends OcppMessagePayload
+  TPayload extends OcppMessagePayload = unknown
 > extends InboundOcppMessage {
   type: OcppMessageType.CALLRESULT;
   private _data: TPayload;
@@ -27,7 +27,7 @@ class InboundOcppCallResult<
 }
 
 class OutboundOcppCallResult<
-  TPayload extends OcppMessagePayload
+  TPayload extends OcppMessagePayload = unknown
 > extends OutboundOcppMessage {
   type: OcppMessageType.CALLRESULT;
   private _data: TPayload;
