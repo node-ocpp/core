@@ -28,7 +28,6 @@ abstract class OcppEndpoint<
   private outboundMessageHandlers: OutboundOcppMessageHandler[];
 
   protected abstract get isListening(): boolean;
-  protected abstract handleCreate(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
   protected abstract handleDrop(clientId: string): Promise<void>;
@@ -56,7 +55,6 @@ abstract class OcppEndpoint<
 
     this.sessionService = sessionService;
     this.sessionService.create();
-    this.handleCreate();
   }
 
   public async listen() {
