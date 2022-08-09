@@ -1,11 +1,11 @@
-import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
+import { InboundOcppCall, OutboundOcppCall } from './OcppCallMessage';
 import { OcppProtocolVersion } from './OcppEndpoint';
 
-abstract class OcppSession {
+class OcppSession {
   private _client: OcppClient;
   private _protocol: OcppProtocolVersion;
-  private _pendingInboundMessage?: InboundOcppMessage;
-  private _pendingOutboundMessage?: OutboundOcppMessage;
+  private _pendingInboundMessage?: InboundOcppCall;
+  private _pendingOutboundMessage?: OutboundOcppCall;
 
   constructor(client: OcppClient, protocol: OcppProtocolVersion) {
     this._client = client;
@@ -24,7 +24,7 @@ abstract class OcppSession {
     return this._pendingInboundMessage;
   }
 
-  set pendingInboundMessage(message: InboundOcppMessage) {
+  set pendingInboundMessage(message: InboundOcppCall) {
     this._pendingInboundMessage = message;
   }
 
@@ -32,7 +32,7 @@ abstract class OcppSession {
     return this._pendingOutboundMessage;
   }
 
-  set pendingOutboundMessage(message: OutboundOcppMessage) {
+  set pendingOutboundMessage(message: OutboundOcppCall) {
     this._pendingOutboundMessage = message;
   }
 }
