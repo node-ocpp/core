@@ -93,6 +93,16 @@ abstract class OcppEndpoint<
     this.emit('message_sent', message);
   }
 
+  public async dropSession(clientId: string) {
+    const session = await this.sessionService.get(clientId);
+    if (session === null) {
+      throw new Error(`Client with id ${clientId} is currently not connected`);
+    }
+
+    await this.handleDropSession(clientId);
+    this.onSessionClosed(session);
+  }
+
   protected onConnectionAttempt(properties: TAuthenticationRequest) {
     this.authenticationHandlers[0].handle(properties);
   }
