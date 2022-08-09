@@ -5,6 +5,7 @@ import TypedEmitter from 'typed-emitter';
 import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
+import { OutboundOcppCallError } from './OcppCallErrorMessage';
 import {
   AsyncHandler,
   OcppAuthenticationHandler,
@@ -131,7 +132,16 @@ abstract class OcppEndpoint<
 
   protected onInboundMessage(message: InboundOcppMessage) {
     this.emit('message_received', message);
-    this.inboundMessageHandlers[0].handle(message);
+
+    try {
+      this.inboundMessageHandlers[0].handle(message);
+    } catch (e) {
+      if (e instanceof OutboundOcppCallError) {
+        this.sendMessage(e);
+      } else {
+        throw e;
+      }
+    }
   }
 }
 
