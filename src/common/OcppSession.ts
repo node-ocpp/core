@@ -3,8 +3,6 @@ import OcppClient from './OcppClient';
 import { OcppProtocolVersion } from './OcppEndpoint';
 
 abstract class OcppSession {
-  abstract get isActive(): boolean;
-
   private _client: OcppClient;
   private _protocol: OcppProtocolVersion;
   private _pendingMessage?: OcppMessage;
@@ -34,12 +32,9 @@ abstract class OcppSession {
 interface OcppSessionService {
   init(): Promise<void>;
   add(sesion: OcppSession): Promise<void>;
-  has(session: OcppSession): Promise<boolean>;
   has(clientId: string): Promise<boolean>;
-  get(clientId: string): Promise<OcppSession>;
-  update(clientId: string, newSession: OcppSession): Promise<void>;
-  update(oldSession: OcppSession, newSession: OcppSession): Promise<void>;
-  remove(session: OcppSession): Promise<void>;
+  get(clientId: string): Promise<OcppSession | null>;
+  update(clientId: string, session: OcppSession): Promise<void>;
   remove(clientId: string): Promise<void>;
 }
 
