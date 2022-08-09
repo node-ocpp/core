@@ -4,7 +4,9 @@ class LocalSessionService implements OcppSessionService {
   private sessions: Map<string, OcppSession>;
 
   async create() {
-    this.sessions = new Map<string, OcppSession>();
+    if (!this.sessions) {
+      this.sessions = new Map<string, OcppSession>();
+    }
   }
 
   async destroy() {
@@ -30,7 +32,7 @@ class LocalSessionService implements OcppSessionService {
   }
 
   async get(clientId: string) {
-    return this.sessions.get(clientId);
+    return this.sessions.get(clientId) || null;
   }
 
   async update(clientId: string, session: OcppSession) {
