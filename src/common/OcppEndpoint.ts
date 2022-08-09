@@ -28,13 +28,10 @@ abstract class OcppEndpoint<
 
   protected abstract get isListening(): boolean;
   protected abstract handleCreate(): void;
-  protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
-  protected abstract handleSendMessage(
-    message: OutboundOcppMessage
-  ): Promise<void>;
-  protected abstract handleDropSession(clientId: string): Promise<void>;
+  protected abstract handleDrop(clientId: string): Promise<void>;
+  protected abstract handleSend(message: OutboundOcppMessage): Promise<void>;
 
   constructor(
     config: TConfig,
@@ -44,7 +41,7 @@ abstract class OcppEndpoint<
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
-    this.handleCreate();
+
     this.config = config;
     this.authenticationHandlers.concat(
       AsyncHandler.map(authenticationHandlers)
@@ -57,7 +54,7 @@ abstract class OcppEndpoint<
     );
     this.sessionService = sessionService;
     this.sessionService.create();
-    this.handleCreated();
+    this.handleCreate();
   }
 
   public async listen() {
@@ -90,7 +87,7 @@ abstract class OcppEndpoint<
     }
 
     await this.outboundMessageHandlers[0].handle(message);
-    await this.handleSendMessage(message);
+    await this.handleSend(message);
     this.emit('message_sent', message);
   }
 
@@ -100,7 +97,7 @@ abstract class OcppEndpoint<
       throw new Error(`Client with id ${clientId} is currently not connected`);
     }
 
-    await this.handleDropSession(clientId);
+    await this.handleDrop(clientId);
     this.onSessionClosed(session);
   }
 
