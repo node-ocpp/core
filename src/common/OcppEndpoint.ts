@@ -4,6 +4,7 @@ import TypedEmitter from 'typed-emitter';
 
 import OcppClient from './OcppClient';
 import OcppSession, { OcppSessionService } from './OcppSession';
+import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import {
   AsyncHandler,
@@ -40,7 +41,7 @@ abstract class OcppEndpoint<
     authenticationHandlers: TAuthenticationHandler[],
     inboundMessageHandlers: InboundOcppMessageHandler[],
     outboundMessageHandlers: OutboundOcppMessageHandler[],
-    sessionService: TSessionService
+    sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
     this.handleCreate();
