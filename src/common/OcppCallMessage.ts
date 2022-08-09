@@ -20,8 +20,8 @@ class InboundOcppCall<
   TResponse extends OutboundOcppCallResult<TResponsePayload> = undefined
 > extends RespondableOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
-  private _action: string;
-  private _data: TPayload;
+  action: string;
+  data: TPayload;
 
   constructor(
     id: string,
@@ -31,24 +31,8 @@ class InboundOcppCall<
     responseHandler?: OutboundOcppMessageHandler<TResponse>
   ) {
     super(id, sender, responseHandler);
-    this._action = action;
-    this._data = data;
-  }
-
-  set action(action: string) {
-    this._action = action;
-  }
-
-  get action() {
-    return this._action;
-  }
-
-  set data(data: TPayload) {
-    this._data = data;
-  }
-
-  get data() {
-    return this._data;
+    this.action = action;
+    this.data = data;
   }
 }
 
@@ -58,8 +42,8 @@ class OutboundOcppCall<
   TResponse extends InboundOcppCallResult<TResponsePayload> = undefined
 > extends ResultingOcppMessage<TResponse> {
   type: OcppMessageType.CALL;
-  private _action: string;
-  private _data: TPayload;
+  action: string;
+  data: TPayload;
 
   constructor(
     id: string,
@@ -69,24 +53,8 @@ class OutboundOcppCall<
     responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
     super(id, recipient, responseHandler);
-    this._action = action;
-    this._data = data;
-  }
-
-  set action(action: string) {
-    this._action = action;
-  }
-
-  get action() {
-    return this._action;
-  }
-
-  set data(data: TPayload) {
-    this._data = data;
-  }
-
-  get data() {
-    return this._data;
+    this.action = action;
+    this.data = data;
   }
 }
 

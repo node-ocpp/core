@@ -21,17 +21,13 @@ type OcppMessageValue =
 type OcppMessagePayload = OcppMessageValue | null | {};
 
 abstract class OcppMessage {
-  type!: OcppMessageType;
-  private _id: string;
+  readonly type!: OcppMessageType;
+  readonly id: string;
   protected _timestamp?: Date;
 
   constructor(id: string) {
-    this._id = id;
+    this.id = id;
     this._timestamp = null;
-  }
-
-  get id() {
-    return this._id;
   }
 
   get timestamp() {
@@ -40,40 +36,28 @@ abstract class OcppMessage {
 }
 
 abstract class InboundOcppMessage extends OcppMessage {
-  protected _sender: OcppClient;
+  readonly sender: OcppClient;
 
   constructor(id: string, sender: OcppClient) {
     super(id);
+    this.sender = sender;
     this._timestamp = new Date();
-    this._sender = sender;
-  }
-
-  get sender() {
-    return this._sender;
   }
 }
 
 abstract class OutboundOcppMessage extends OcppMessage {
-  _recipient?: OcppClient;
+  recipient?: OcppClient;
   _isSent: boolean;
 
   constructor(id: string, recipient?: OcppClient) {
     super(id);
-    this._recipient = recipient;
+    this.recipient = recipient;
     this._isSent = false;
   }
 
   setSent() {
     this._isSent = true;
     this._timestamp = new Date();
-  }
-
-  set recipient(recipient: OcppClient) {
-    this.recipient = recipient;
-  }
-
-  get recipient() {
-    return this._recipient;
   }
 
   get isSent() {
@@ -132,7 +116,6 @@ abstract class ResultingOcppMessage<
   ) {
     super(id, recipient);
     this._responseHandler = responseHandler || null;
-    this._response = null;
   }
 
   async onResponse(response: TResponse) {

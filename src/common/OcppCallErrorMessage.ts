@@ -22,10 +22,10 @@ type RPCError =
   | 'TypeConstraintViolation';
 
 class InboundOcppCallError extends InboundOcppMessage {
-  type: OcppMessageType.CALLERROR;
-  private _code: RPCError;
-  private _description: string;
-  private _details: OcppMessagePayload;
+  readonly type: OcppMessageType.CALLERROR;
+  code: RPCError;
+  description: string;
+  details: OcppMessagePayload;
 
   constructor(
     id: string,
@@ -35,41 +35,17 @@ class InboundOcppCallError extends InboundOcppMessage {
     details: OcppMessagePayload = {}
   ) {
     super(id, sender);
-    this._code = code;
-    this._description = description;
-    this._details = details;
-  }
-
-  set code(code: RPCError) {
-    this._code = code;
-  }
-
-  get code() {
-    return this._code;
-  }
-
-  set description(description: string) {
-    this._description = description;
-  }
-
-  get description() {
-    return this._description;
-  }
-
-  set details(details: OcppMessagePayload) {
-    this._details = details;
-  }
-
-  get details() {
-    return this._details;
+    this.code = code;
+    this.description = description;
+    this.details = details;
   }
 }
 
 class OutboundOcppCallError extends OutboundOcppMessage {
-  type: OcppMessageType.CALLERROR;
-  private _code: RPCError;
-  private _description: string;
-  private _details: OcppMessagePayload;
+  readonly type: OcppMessageType.CALLERROR;
+  code: RPCError;
+  description: string;
+  details: OcppMessagePayload;
 
   constructor(
     id: string,
@@ -79,33 +55,9 @@ class OutboundOcppCallError extends OutboundOcppMessage {
     recipient?: OcppClient
   ) {
     super(id, recipient);
-    this._code = code;
-    this._description = description;
-    this._details = details;
-  }
-
-  set code(code: RPCError) {
-    this._code = code;
-  }
-
-  get code() {
-    return this._code;
-  }
-
-  set description(description: string) {
-    this._description = description;
-  }
-
-  get description() {
-    return this._description;
-  }
-
-  set details(details: OcppMessagePayload) {
-    this._details = details;
-  }
-
-  get details() {
-    return this._details;
+    this.code = code;
+    this.description = description;
+    this.details = details;
   }
 }
 
