@@ -1,5 +1,8 @@
 import OcppClient from './OcppClient';
-import { InboundOcppMessageHandler, OutboundOcppMessageHandler } from './OcppHandlers';
+import {
+  InboundOcppMessageHandler,
+  OutboundOcppMessageHandler,
+} from './OcppHandlers';
 
 enum OcppMessageType {
   CALL = 2,

@@ -30,7 +30,9 @@ abstract class OcppEndpoint<
   protected abstract handleCreated(): void;
   protected abstract handleListen(): Promise<void>;
   protected abstract handleStop(): Promise<void>;
-  protected abstract handleSendMessage(message: OutboundOcppMessage): Promise<void>;
+  protected abstract handleSendMessage(
+    message: OutboundOcppMessage
+  ): Promise<void>;
   protected abstract handleDropSession(clientId: string): Promise<void>;
 
   constructor(
@@ -43,9 +45,15 @@ abstract class OcppEndpoint<
     super();
     this.handleCreate();
     this.config = config;
-    this.authenticationHandlers.concat(AsyncHandler.map(authenticationHandlers));
-    this.inboundMessageHandlers.concat(AsyncHandler.map(inboundMessageHandlers));
-    this.outboundMessageHandlers.concat(AsyncHandler.map(outboundMessageHandlers));
+    this.authenticationHandlers.concat(
+      AsyncHandler.map(authenticationHandlers)
+    );
+    this.inboundMessageHandlers.concat(
+      AsyncHandler.map(inboundMessageHandlers)
+    );
+    this.outboundMessageHandlers.concat(
+      AsyncHandler.map(outboundMessageHandlers)
+    );
     this.sessionService = sessionService;
     this.sessionService.init();
     this.handleCreated();
@@ -75,7 +83,9 @@ abstract class OcppEndpoint<
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
     } else if (!this.sessionService.has(message.recipient.id)) {
-      throw new Error(`Client with id ${message.recipient.id} is currently not connected`);
+      throw new Error(
+        `Client with id ${message.recipient.id} is currently not connected`
+      );
     }
 
     await this.outboundMessageHandlers[0].handle(message);
@@ -145,4 +155,9 @@ type OcppProtocolVersion =
   | 'ocpp2.0.1';
 
 export default OcppEndpoint;
-export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion, DefaultOcppEndpointConfig };
+export {
+  OcppEndpointEvents,
+  OcppEndpointConfig,
+  OcppProtocolVersion,
+  DefaultOcppEndpointConfig,
+};

@@ -1,4 +1,7 @@
-import OcppMessage, { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
+import OcppMessage, {
+  InboundOcppMessage,
+  OutboundOcppMessage,
+} from './OcppMessage';
 
 abstract class AsyncHandler<TRequest> {
   private _next!: AsyncHandler<TRequest>;
@@ -15,12 +18,16 @@ abstract class AsyncHandler<TRequest> {
     return null as any;
   }
 
-  static map<THandler extends AsyncHandler<unknown>>(handlers: THandler[]): THandler[] {
+  static map<THandler extends AsyncHandler<unknown>>(
+    handlers: THandler[]
+  ): THandler[] {
     return handlers.map((handler, i) => (handler.next = handlers[i + 1]));
   }
 }
 
-abstract class OcppAuthenticationHandler<OcppAuthenticationRequest> extends AsyncHandler<OcppAuthenticationRequest> {}
+abstract class OcppAuthenticationHandler<
+  OcppAuthenticationRequest
+> extends AsyncHandler<OcppAuthenticationRequest> {}
 
 abstract class OcppAuthenticationRequest {}
 

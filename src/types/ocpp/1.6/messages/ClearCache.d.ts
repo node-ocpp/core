@@ -7,7 +7,8 @@ declare type ClearCacheRequest = OutboundOcppCall<
   ClearCacheResponse
 >;
 
-declare type ClearCacheResponse = InboundOcppCallResult<ClearCacheResponsePayload>;
+declare type ClearCacheResponse =
+  InboundOcppCallResult<ClearCacheResponsePayload>;
 
 declare type ClearCacheResponsePayload = {
   status: ClearCacheStatus;

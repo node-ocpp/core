@@ -34,7 +34,8 @@ declare type Reason =
   | 'UnlockCommand'
   | 'DeAuthorized';
 
-declare type StopTransactionResponse = OutboundOcppCallResult<StopTransactionResponsePayload>;
+declare type StopTransactionResponse =
+  OutboundOcppCallResult<StopTransactionResponsePayload>;
 
 declare type StopTransactionResponsePayload = {
   idTagInfo: IdTagInfo;

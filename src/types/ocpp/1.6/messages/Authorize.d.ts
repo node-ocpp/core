@@ -13,7 +13,8 @@ declare type AuthorizeRequestPayload = {
   idTag: string;
 };
 
-declare type AuthorizeResponse = OutboundOcppCallResult<AuthorizeResponsePayload>;
+declare type AuthorizeResponse =
+  OutboundOcppCallResult<AuthorizeResponsePayload>;
 
 declare type AuthorizeResponsePayload = {
   idTagInfo: IdTagInfo;

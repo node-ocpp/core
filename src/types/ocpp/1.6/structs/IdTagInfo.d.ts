@@ -6,6 +6,11 @@ declare type IdTagInfo = {
   status: AuthorizationStatus;
 };
 
-declare type AuthorizationStatus = 'Accepted' | 'Blocked' | 'Expired' | 'Invalid' | 'ConcurrentTx';
+declare type AuthorizationStatus =
+  | 'Accepted'
+  | 'Blocked'
+  | 'Expired'
+  | 'Invalid'
+  | 'ConcurrentTx';
 
 export default IdTagInfo;

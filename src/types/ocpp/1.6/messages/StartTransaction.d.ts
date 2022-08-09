@@ -17,7 +17,8 @@ declare type StartTransactionRequestPayload = {
   timestamp: Date;
 };
 
-declare type StartTransactionResponse = OutboundOcppCallResult<StartTransactionResponsePayload>;
+declare type StartTransactionResponse =
+  OutboundOcppCallResult<StartTransactionResponsePayload>;
 
 declare type StartTransactionResponsePayload = {
   idTagInfo: IdTagInfo;

@@ -19,6 +19,10 @@ declare type ChangeConfigurationResponsePayload = {
   status: ConfigurationStatus;
 };
 
-declare type ConfigurationStatus = 'Accepted' | 'Rejected' | 'RebootRequired' | 'NotSupported';
+declare type ConfigurationStatus =
+  | 'Accepted'
+  | 'Rejected'
+  | 'RebootRequired'
+  | 'NotSupported';
 
 export { ChangeConfigurationRequest, ChangeConfigurationResponse };

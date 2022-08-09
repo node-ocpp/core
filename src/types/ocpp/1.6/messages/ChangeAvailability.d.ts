@@ -14,7 +14,8 @@ declare type ChangeAvailabilityRequestPayload = {
 
 declare type AvailabilityType = 'Inoperative' | 'Operative';
 
-declare type ChangeAvailabilityResponse = InboundOcppCallResult<ChangeAvailabilityResponsePayload>;
+declare type ChangeAvailabilityResponse =
+  InboundOcppCallResult<ChangeAvailabilityResponsePayload>;
 
 declare type ChangeAvailabilityResponsePayload = {
   status: AvailabilityStatus;

@@ -11,7 +11,8 @@ declare type UnlockConnectorRequestPayload = {
   connectorId: number;
 };
 
-declare type UnlockConnectorResponse = InboundOcppCallResult<UnlockConnectorResponsePayload>;
+declare type UnlockConnectorResponse =
+  InboundOcppCallResult<UnlockConnectorResponsePayload>;
 
 declare type UnlockConnectorResponsePayload = {
   status: UnlockStatus;
