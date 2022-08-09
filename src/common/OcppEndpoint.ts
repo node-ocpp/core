@@ -15,19 +15,12 @@ import {
 
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
-  TClient extends OcppClient,
-  TSession extends OcppSession<TClient>,
-  TSessionService extends OcppSessionService<TClient, TSession>,
-  TAuthenticationRequest extends OcppAuthenticationRequest<TClient, TSession>,
-  TAuthenticationHandler extends OcppAuthenticationHandler<
-    TClient,
-    TSession,
-    TAuthenticationRequest
-  >
+  TAuthenticationRequest extends OcppAuthenticationRequest,
+  TAuthenticationHandler extends OcppAuthenticationHandler<TAuthenticationRequest> = OcppAuthenticationHandler<TAuthenticationRequest>
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
-  private sessionService: TSessionService;
+  private sessionService: OcppSessionService;
   private authenticationHandlers: TAuthenticationHandler[];
   private inboundMessageHandlers: InboundOcppMessageHandler[];
   private outboundMessageHandlers: OutboundOcppMessageHandler[];
@@ -94,21 +87,25 @@ abstract class OcppEndpoint<
     this.authenticationHandlers[0].handle(properties);
   }
 
-  protected onClientConnected(session: TSession) {
+  protected onSessionCreated(session: OcppSession) {
     if (this.sessionService.has(session.client.id)) {
-      throw new Error(`Client with id ${session.client.id} is already connected`);
+      throw new Error(
+        `Client with id ${session.client.id} is already connected`
+      );
     }
 
     this.sessionService.add(session);
     this.emit('client_connected', session.client);
   }
 
-  protected onClientDisconnected(session: TSession) {
+  protected onSessionClosed(session: OcppSession) {
     if (!this.sessionService.has(session.client.id)) {
-      throw new Error(`Client with id ${session.client.id} is currently not connected`);
+      throw new Error(
+        `Client with id ${session.client.id} is currently not connected`
+      );
     }
 
-    this.sessionService.remove(session);
+    this.sessionService.remove(session.client.id);
     this.emit('client_disconnected', session.client);
   }
 
