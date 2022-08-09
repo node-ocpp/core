@@ -1,5 +1,4 @@
 import OcppMessage from './OcppMessage';
-import OcppClient from './OcppClient';
 import { OcppProtocolVersion } from './OcppEndpoint';
 
 abstract class OcppSession {
@@ -29,6 +28,18 @@ abstract class OcppSession {
   }
 }
 
+class OcppClient {
+  private _id: string;
+
+  constructor(id: string) {
+    this._id = id;
+  }
+
+  get id() {
+    return this._id;
+  }
+}
+
 interface OcppSessionService {
   init(): Promise<void>;
   add(sesion: OcppSession): Promise<void>;
@@ -39,4 +50,4 @@ interface OcppSessionService {
 }
 
 export default OcppSession;
-export { OcppSessionService };
+export { OcppClient, OcppSessionService };

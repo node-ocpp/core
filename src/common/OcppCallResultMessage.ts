@@ -1,5 +1,4 @@
-import OcppClient from './OcppClient';
-import OcppSession from './OcppSession';
+import { OcppClient } from './OcppSession';
 import {
   OcppMessageType,
   OcppMessagePayload,

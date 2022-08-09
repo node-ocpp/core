@@ -2,8 +2,7 @@
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 
-import OcppClient from './OcppClient';
-import OcppSession, { OcppSessionService } from './OcppSession';
+import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import {
