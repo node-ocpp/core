@@ -50,7 +50,9 @@ class OcppClient {
 }
 
 interface OcppSessionService {
-  init(): Promise<void>;
+  create(): Promise<void>;
+  destroy(): Promise<void>;
+  count(): Promise<number>;
   add(sesion: OcppSession): Promise<void>;
   has(clientId: string): Promise<boolean>;
   get(clientId: string): Promise<OcppSession | null>;

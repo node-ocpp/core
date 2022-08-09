@@ -55,7 +55,7 @@ abstract class OcppEndpoint<
       AsyncHandler.map(outboundMessageHandlers)
     );
     this.sessionService = sessionService;
-    this.sessionService.init();
+    this.sessionService.create();
     this.handleCreated();
   }
 

@@ -1,22 +1,36 @@
 import OcppSession, { OcppSessionService } from '../OcppSession';
 
 class LocalSessionService implements OcppSessionService {
-  private sessions: Record<string, OcppSession>;
+  private sessions: Map<string, OcppSession>;
 
-  async init() {
-    this.sessions = {};
+  async create() {
+    this.sessions = new Map<string, OcppSession>();
+  }
+
+  async destroy() {
+    delete this.sessions;
+  }
+
+  async count(): Promise<number> {
+    return this.sessions.size;
   }
 
   async add(sesion: OcppSession) {
-    this.sessions[sesion.client.id] = sesion;
+    if (this.has(sesion.client.id)) {
+      throw new Error(
+        `Session for client with id ${sesion.client.id} already exists`
+      );
+    }
+
+    this.sessions.set(sesion.client.id, sesion);
   }
 
   async has(clientId: string) {
-    return !!this.sessions[clientId];
+    return this.sessions.has(clientId);
   }
 
   async get(clientId: string) {
-    return this.sessions[clientId] || null;
+    return this.sessions.get(clientId);
   }
 
   async update(clientId: string, session: OcppSession) {
@@ -24,7 +38,7 @@ class LocalSessionService implements OcppSessionService {
       throw new Error(`No session for client with id ${clientId} exists`);
     }
 
-    this.sessions[clientId] = session;
+    this.sessions.set(clientId, session);
   }
 
   async remove(clientId: string) {
@@ -32,7 +46,7 @@ class LocalSessionService implements OcppSessionService {
       throw new Error(`No session for client with id ${clientId} exists`);
     }
 
-    delete this.sessions[clientId];
+    this.sessions.delete(clientId);
   }
 }
 
