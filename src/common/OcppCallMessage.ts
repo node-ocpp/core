@@ -1,5 +1,6 @@
 import { OcppClient } from './OcppSession';
 import OcppMessageType from '../types/ocpp/OcppMessageType';
+import OcppAction from '../types/ocpp/OcppAction';
 import {
   InboundOcppCallResult,
   OutboundOcppCallResult,
@@ -13,6 +14,13 @@ import {
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 } from './OcppHandlers';
+
+interface OcppCallMessage<TPayload extends OcppMessagePayload>
+  extends OcppMessage {
+  readonly type: OcppMessageType.CALLRESULT;
+  action: OcppAction;
+  data: TPayload;
+}
 
 class InboundOcppCall<
   TPayload extends OcppMessagePayload = unknown,
@@ -58,4 +66,5 @@ class OutboundOcppCall<
   }
 }
 
+export default OcppCallMessage;
 export { InboundOcppCall, OutboundOcppCall };

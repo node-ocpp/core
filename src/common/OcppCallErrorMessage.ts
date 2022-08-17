@@ -1,6 +1,7 @@
 import { OcppClient } from './OcppSession';
 import OcppMessageType from '../types/ocpp/OcppMessageType';
-import {
+import OcppAction from '../types/ocpp/OcppAction';
+import OcppMessage, {
   OcppMessagePayload,
   InboundOcppMessage,
   OutboundOcppMessage,
@@ -20,7 +21,17 @@ type RPCError =
   | 'SecurityError'
   | 'TypeConstraintViolation';
 
-class InboundOcppCallError extends InboundOcppMessage {
+interface OcppCallErrorMessage extends OcppMessage {
+  readonly type: OcppMessageType.CALLERROR;
+  code: RPCError;
+  description: string;
+  details: OcppMessagePayload;
+}
+
+class InboundOcppCallError
+  extends InboundOcppMessage
+  implements OcppCallErrorMessage
+{
   readonly type: OcppMessageType.CALLERROR;
   code: RPCError;
   description: string;
@@ -40,7 +51,10 @@ class InboundOcppCallError extends InboundOcppMessage {
   }
 }
 
-class OutboundOcppCallError extends OutboundOcppMessage {
+class OutboundOcppCallError
+  extends OutboundOcppMessage
+  implements OcppCallErrorMessage
+{
   readonly type: OcppMessageType.CALLERROR;
   code: RPCError;
   description: string;
