@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import merge from 'lodash.merge';
 
-import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
+import OcppSession, { OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OutboundOcppCallError } from './OcppCallErrorMessage';
@@ -141,7 +141,7 @@ abstract class OcppEndpoint<
     }
 
     this.sessionService.add(session);
-    this.emit('client_connected', session.client);
+    this.emit('client_connected', session);
   }
 
   protected onSessionClosed(session: OcppSession) {
@@ -152,7 +152,7 @@ abstract class OcppEndpoint<
     }
 
     this.sessionService.remove(session.client.id);
-    this.emit('client_disconnected', session.client);
+    this.emit('client_disconnected', session);
   }
 
   protected onInboundMessage(message: InboundOcppMessage) {
