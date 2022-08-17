@@ -2,6 +2,7 @@
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import merge from 'lodash.merge';
+import os from 'os';
 
 import OcppSession, { OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
@@ -20,6 +21,7 @@ import {
 
 type OcppEndpointConfig = {
   port?: number;
+  hostname?: string;
   protocols?: OcppProtocolVersion[];
   messageTimeout?: number;
   sessionTimeout?: number;
@@ -80,6 +82,7 @@ abstract class OcppEndpoint<
 
   protected static defaultConfig: OcppEndpointConfig = {
     port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+    hostname: os.hostname(),
     protocols: OcppProtocolVersions,
     messageTimeout: 30000,
     sessionTimeout: 60000,
