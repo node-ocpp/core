@@ -42,8 +42,7 @@ type OcppEndpointEvents = {
 
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
-  TAuthenticationRequest extends OcppAuthenticationRequest,
-  TAuthenticationHandler extends OcppAuthenticationHandler<TAuthenticationRequest>
+  TAuthenticationHandler extends OcppAuthenticationHandler<unknown>
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
@@ -135,8 +134,8 @@ abstract class OcppEndpoint<
     this.onSessionClosed(session);
   }
 
-  protected onConnectionAttempt(properties: TAuthenticationRequest) {
-    this.authenticationHandlers[0].handle(properties);
+  protected onConnectionAttempt(request: OcppAuthenticationRequest) {
+    this.authenticationHandlers[0].handle(request);
   }
 
   protected onSessionCreated(session: OcppSession) {
