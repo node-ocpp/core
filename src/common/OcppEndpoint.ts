@@ -18,6 +18,24 @@ import {
   OutboundOcppMessageHandler,
 } from './OcppHandlers';
 
+type OcppEndpointConfig = {
+  port?: number;
+  protocols?: OcppProtocolVersion[];
+  messageTimeout?: number;
+  sessionTimeout?: number;
+};
+
+type OcppEndpointEvents = {
+  server_starting: (config: OcppEndpointConfig) => void;
+  server_listening: (config: OcppEndpointConfig) => void;
+  server_stopping: () => void;
+  server_stopped: () => void;
+  client_connected: (client: OcppSession) => void;
+  client_disconnected: (client: OcppSession) => void;
+  message_sent: (message: OutboundOcppMessage) => void;
+  message_received: (message: InboundOcppMessage) => void;
+};
+
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig,
   TAuthenticationRequest extends OcppAuthenticationRequest,
@@ -152,22 +170,5 @@ abstract class OcppEndpoint<
   }
 }
 
-type OcppEndpointEvents = {
-  server_starting: (config: OcppEndpointConfig) => void;
-  server_listening: (config: OcppEndpointConfig) => void;
-  server_stopping: () => void;
-  server_stopped: () => void;
-  client_connected: (client: OcppClient) => void;
-  client_disconnected: (client: OcppClient) => void;
-  message_sent: (message: OutboundOcppMessage) => void;
-  message_received: (message: InboundOcppMessage) => void;
-};
-
-type OcppEndpointConfig = {
-  port?: number;
-  protocols?: OcppProtocolVersion[];
-  messageTimeout?: number;
-  sessionTimeout?: number;
-};
 export default OcppEndpoint;
 export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };
