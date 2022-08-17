@@ -7,6 +7,9 @@ import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OutboundOcppCallError } from './OcppCallErrorMessage';
+import OcppProtocolVersion, {
+  OcppProtocolVersions,
+} from '../types/ocpp/OcppProtocolVersion';
 import {
   AsyncHandler,
   OcppAuthenticationHandler,
@@ -41,7 +44,7 @@ abstract class OcppEndpoint<
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
-    this.config = merge(DefaultOcppEndpointConfig, config);
+    this.config = merge(OcppEndpoint.defaultConfig, config);
 
     this.authenticationHandlers.concat(
       AsyncHandler.map(authenticationHandlers)
@@ -56,6 +59,13 @@ abstract class OcppEndpoint<
     this.sessionService = sessionService;
     this.sessionService.create();
   }
+
+  protected static defaultConfig: OcppEndpointConfig = {
+    port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+    protocols: OcppProtocolVersions,
+    messageTimeout: 30000,
+    sessionTimeout: 60000,
+  };
 
   public async listen() {
     if (this.isListening) {
@@ -159,25 +169,5 @@ type OcppEndpointConfig = {
   messageTimeout?: number;
   sessionTimeout?: number;
 };
-
-const DefaultOcppEndpointConfig = <OcppEndpointConfig>{
-  port: process.env.NODE_ENV === 'development' ? 8080 : 80,
-  protocols: ['ocpp1.2', 'ocpp1.5', 'ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'],
-  messageTimeout: 30000,
-  sessionTimeout: 60000,
-};
-
-type OcppProtocolVersion =
-  | 'ocpp1.2'
-  | 'ocpp1.5'
-  | 'ocpp1.6'
-  | 'ocpp2.0'
-  | 'ocpp2.0.1';
-
 export default OcppEndpoint;
-export {
-  OcppEndpointEvents,
-  OcppEndpointConfig,
-  OcppProtocolVersion,
-  DefaultOcppEndpointConfig,
-};
+export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };
