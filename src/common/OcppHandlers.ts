@@ -2,7 +2,6 @@ import OcppMessage, {
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
-
 abstract class AsyncHandler<TRequest> {
   private _next!: AsyncHandler<TRequest>;
 
@@ -31,6 +30,25 @@ abstract class OcppAuthenticationHandler<
 
 abstract class OcppAuthenticationRequest {}
 
+interface CertificateAuthenticationHandler
+  extends OcppAuthenticationHandler<CertificateAuthenticationRequest> {
+  readonly id: string;
+  deny(): void;
+  accept(): void;
+}
+
+interface CertificateAuthenticationRequest {
+  readonly certificate: unknown;
+}
+
+// eslint-disable-next-line prettier/prettier
+class BasicAuthenticationHandler
+  extends OcppAuthenticationHandler<BasicAuthenticationRequest> {}
+
+interface BasicAuthenticationRequest {
+  readonly password: string;
+}
+
 abstract class OcppMessageHandler<
   TMessage extends OcppMessage = OcppMessage
 > extends AsyncHandler<TMessage> {}
@@ -48,6 +66,10 @@ export {
   AsyncHandler,
   OcppAuthenticationHandler,
   OcppAuthenticationRequest,
+  BasicAuthenticationHandler,
+  BasicAuthenticationRequest,
+  CertificateAuthenticationHandler,
+  CertificateAuthenticationRequest,
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 };
