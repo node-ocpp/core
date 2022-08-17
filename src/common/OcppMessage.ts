@@ -1,14 +1,9 @@
+import OcppMessageType from '../types/ocpp/OcppMessageType';
 import { OcppClient } from './OcppSession';
 import {
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 } from './OcppHandlers';
-
-enum OcppMessageType {
-  CALL = 2,
-  CALLRESULT = 3,
-  CALLERROR = 4,
-}
 
 type OcppMessageValue =
   | string
@@ -142,7 +137,6 @@ abstract class ResultingOcppMessage<
 
 export default OcppMessage;
 export {
-  OcppMessageType,
   OcppMessagePayload,
   InboundOcppMessage,
   OutboundOcppMessage,

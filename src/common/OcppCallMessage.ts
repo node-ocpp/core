@@ -1,10 +1,10 @@
 import { OcppClient } from './OcppSession';
+import OcppMessageType from '../types/ocpp/OcppMessageType';
 import {
   InboundOcppCallResult,
   OutboundOcppCallResult,
 } from './OcppCallResultMessage';
-import {
-  OcppMessageType,
+import OcppMessage, {
   OcppMessagePayload,
   RespondableOcppMessage,
   ResultingOcppMessage,
