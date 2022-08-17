@@ -1,4 +1,5 @@
 /* eslint-disable node/no-unpublished-import */
+import http, { Server as HTTPServer, ServerOptions as HTTPOptions } from 'http';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import merge from 'lodash.merge';
@@ -23,6 +24,7 @@ import {
 type OcppEndpointConfig = {
   port?: number;
   hostname?: string;
+  httpOptions?: HTTPOptions;
   protocols?: OcppProtocolVersion[];
   actionsAllowed?: OcppAction[];
   messageTimeout?: number;
@@ -46,14 +48,12 @@ abstract class OcppEndpoint<
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
-  private sessionService: OcppSessionService;
-  private authenticationHandlers: TAuthenticationHandler[];
-  private inboundMessageHandlers: InboundOcppMessageHandler[];
-  private outboundMessageHandlers: OutboundOcppMessageHandler[];
+  protected httpServer: HTTPServer;
+  protected sessionService: OcppSessionService;
+  protected authenticationHandlers: TAuthenticationHandler[];
+  protected inboundMessageHandlers: InboundOcppMessageHandler[];
+  protected outboundMessageHandlers: OutboundOcppMessageHandler[];
 
-  protected abstract get isListening(): boolean;
-  protected abstract handleListen(): void;
-  protected abstract handleStop(): void;
   protected abstract handleDrop(clientId: string): void;
   protected abstract handleSend(message: OutboundOcppMessage): Promise<void>;
 
@@ -77,18 +77,27 @@ abstract class OcppEndpoint<
       AsyncHandler.map(outboundMessageHandlers)
     );
 
+    this.httpServer = http.createServer(this.config.httpOptions);
+
     this.sessionService = sessionService;
     this.sessionService.create();
   }
 
+  protected static defaultHttpOptions: HTTPOptions = {};
+
   protected static defaultConfig: OcppEndpointConfig = {
     port: process.env.NODE_ENV === 'development' ? 8080 : 80,
     hostname: os.hostname(),
+    httpOptions: OcppEndpoint.defaultHttpOptions,
     protocols: OcppProtocolVersions,
     actionsAllowed: OcppActions,
     messageTimeout: 30000,
     sessionTimeout: 60000,
   };
+
+  public get isListening() {
+    return this.httpServer.listening;
+  }
 
   public async listen() {
     if (this.isListening) {
@@ -96,7 +105,7 @@ abstract class OcppEndpoint<
     }
 
     this.emit('server_starting', this.config);
-    await this.handleListen();
+    await this.httpServer.listen(this.config.port, this.config.hostname);
     this.emit('server_listening', this.config);
   }
 
@@ -106,7 +115,7 @@ abstract class OcppEndpoint<
     }
 
     this.emit('server_stopping');
-    await this.handleStop();
+    await this.httpServer.close();
     this.emit('server_stopped');
   }
 
