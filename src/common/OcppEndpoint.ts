@@ -8,6 +8,7 @@ import OcppSession, { OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OutboundOcppCallError } from './OcppCallErrorMessage';
+import OcppAction, { OcppActions } from '../types/ocpp/OcppAction';
 import OcppProtocolVersion, {
   OcppProtocolVersions,
 } from '../types/ocpp/OcppProtocolVersion';
@@ -23,6 +24,7 @@ type OcppEndpointConfig = {
   port?: number;
   hostname?: string;
   protocols?: OcppProtocolVersion[];
+  actionsAllowed?: OcppAction[];
   messageTimeout?: number;
   sessionTimeout?: number;
 };
@@ -84,6 +86,7 @@ abstract class OcppEndpoint<
     port: process.env.NODE_ENV === 'development' ? 8080 : 80,
     hostname: os.hostname(),
     protocols: OcppProtocolVersions,
+    actionsAllowed: OcppActions,
     messageTimeout: 30000,
     sessionTimeout: 60000,
   };
