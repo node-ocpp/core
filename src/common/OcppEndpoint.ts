@@ -28,9 +28,9 @@ abstract class OcppEndpoint<
   private outboundMessageHandlers: OutboundOcppMessageHandler[];
 
   protected abstract get isListening(): boolean;
-  protected abstract handleListen(): Promise<void>;
-  protected abstract handleStop(): Promise<void>;
-  protected abstract handleDrop(clientId: string): Promise<void>;
+  protected abstract handleListen(): void;
+  protected abstract handleStop(): void;
+  protected abstract handleDrop(clientId: string): void;
   protected abstract handleSend(message: OutboundOcppMessage): Promise<void>;
 
   constructor(
