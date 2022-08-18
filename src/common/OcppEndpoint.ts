@@ -19,10 +19,10 @@ import {
   OcppAuthenticationRequest,
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
-  CertificateAuthenticationRequest,
-  BasicAuthenticationRequest,
   BasicAuthenticationHandler,
+  BasicAuthenticationRequest,
   CertificateAuthenticationHandler,
+  CertificateAuthenticationRequest,
 } from './OcppHandlers';
 
 type OcppEndpointConfig = {
@@ -79,31 +79,31 @@ abstract class OcppEndpoint<
     this.config = merge(OcppEndpoint.defaultConfig, config);
 
     this.basicAuthHandlers = AsyncHandler.map([
-      ...OcppEndpoint.defaultHandlers.authentication.prefix,
+      ...this.defaultHandlers.authentication.prefix,
       ...authenticationHandlers.filter(
         handler => handler instanceof BasicAuthenticationHandler
       ),
-      ...OcppEndpoint.defaultHandlers.authentication.suffix,
+      ...this.defaultHandlers.authentication.suffix,
     ]) as BasicAuthenticationHandler[];
 
     this.certAuthHandlers = AsyncHandler.map([
-      ...OcppEndpoint.defaultHandlers.authentication.prefix,
+      ...this.defaultHandlers.authentication.prefix,
       ...authenticationHandlers.filter(
         handler => handler instanceof CertificateAuthenticationHandler
       ),
-      ...OcppEndpoint.defaultHandlers.authentication.suffix,
+      ...this.defaultHandlers.authentication.suffix,
     ]) as CertificateAuthenticationHandler[];
 
     this.inboundMessageHandlers = AsyncHandler.map([
-      ...OcppEndpoint.defaultHandlers.inboundMessage.prefix,
+      ...this.defaultHandlers.inboundMessage.prefix,
       ...inboundMessageHandlers,
-      ...OcppEndpoint.defaultHandlers.inboundMessage.suffix,
+      ...this.defaultHandlers.inboundMessage.suffix,
     ]);
 
     this.outboundMessageHandlers = AsyncHandler.map([
-      ...OcppEndpoint.defaultHandlers.outboundMessage.prefix,
+      ...this.defaultHandlers.outboundMessage.prefix,
       ...outboundMessageHandlers,
-      ...OcppEndpoint.defaultHandlers.outboundMessage.suffix,
+      ...this.defaultHandlers.outboundMessage.suffix,
     ]);
 
     this.httpServer = http.createServer(this.config.httpOptions);
@@ -124,20 +124,22 @@ abstract class OcppEndpoint<
     sessionTimeout: 60000,
   };
 
-  protected static defaultHandlers = {
-    authentication: {
-      prefix: <OcppAuthenticationHandler[]>[],
-      suffix: <OcppAuthenticationHandler[]>[],
-    },
-    inboundMessage: {
-      prefix: <InboundOcppMessageHandler[]>[],
-      suffix: <InboundOcppMessageHandler[]>[],
-    },
-    outboundMessage: {
-      prefix: <OutboundOcppMessageHandler[]>[],
-      suffix: <OutboundOcppMessageHandler[]>[],
-    },
-  };
+  protected get defaultHandlers() {
+    return {
+      authentication: {
+        prefix: <OcppAuthenticationHandler[]>[],
+        suffix: <OcppAuthenticationHandler[]>[],
+      },
+      inboundMessage: {
+        prefix: <InboundOcppMessageHandler[]>[],
+        suffix: <InboundOcppMessageHandler[]>[],
+      },
+      outboundMessage: {
+        prefix: <OutboundOcppMessageHandler[]>[],
+        suffix: <OutboundOcppMessageHandler[]>[],
+      },
+    };
+  }
 
   public get isListening() {
     return this.httpServer.listening;
