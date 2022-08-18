@@ -1,28 +1,8 @@
+import { AsyncHandler } from './util/Handler';
 import OcppMessage, {
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
-abstract class AsyncHandler<TRequest> {
-  private _next!: AsyncHandler<TRequest>;
-
-  set next(handler: AsyncHandler<TRequest>) {
-    this._next = handler;
-  }
-
-  handle(request: TRequest): Promise<TRequest> {
-    if (this._next) {
-      return this._next.handle(request);
-    }
-
-    return null as any;
-  }
-
-  static map<THandler extends AsyncHandler<unknown>>(
-    handlers: THandler[]
-  ): THandler[] {
-    return handlers.map((handler, i) => (handler.next = handlers[i + 1]));
-  }
-}
 
 abstract class OcppAuthenticationHandler<
   OcppAuthenticationRequest
