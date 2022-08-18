@@ -14,7 +14,7 @@ const OcppActions = [
   'StatusNotification',
   'StopTransaction',
   'UnlockConnector',
-];
+] as const;
 
 declare type OcppAction = typeof OcppActions[number];
 

@@ -17,23 +17,20 @@ import {
 } from '../common/OcppHandlers';
 
 type WebSocketConfig = OcppEndpointConfig & {
-  protocols?: WebSocketProtocolVersion[];
+  protocols?: Readonly<WebSocketProtocolVersion[]>;
   wsOptions?: WSOptions;
   schemaDir?: string;
   validateSchema?: boolean;
 };
 
-const WebSocketProtocolVersions = ['ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'];
+const WebSocketProtocolVersions = ['ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'] as const;
 type WebSocketProtocolVersion = typeof WebSocketProtocolVersions[number];
 
 type WebSocketAuthenticationHandler =
   | BasicAuthenticationHandler
   | CertificateAuthenticationHandler;
 
-class WebSocketEndpoint extends OcppEndpoint<
-  WebSocketConfig,
-  WebSocketAuthenticationHandler
-> {
+class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected wsServer: WSServer;
 
   protected inboundSchemas: Map<OcppAction, OcppAction>;
@@ -68,11 +65,11 @@ class WebSocketEndpoint extends OcppEndpoint<
     validateSchema: true,
   };
 
-  protected handleSend(message: OutboundOcppMessage): Promise<void> {
+  protected async handleSendMessage(message: OutboundOcppMessage) {
     throw new Error('Method not implemented.');
   }
 
-  protected handleDrop(clientId: string) {
+  protected async handleDropSession(clientId: string) {
     throw new Error('Method not implemented.');
   }
 

@@ -4,7 +4,7 @@ const OcppProtocolVersions = [
   'ocpp1.6',
   'ocpp2.0',
   'ocpp2.0.1',
-];
+] as const;
 
 declare type OcppProtocolVersion = typeof OcppProtocolVersions[number];
 

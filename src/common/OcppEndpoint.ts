@@ -29,8 +29,8 @@ type OcppEndpointConfig = {
   port?: number;
   hostname?: string;
   httpOptions?: HTTPOptions;
-  protocols?: OcppProtocolVersion[];
-  actionsAllowed?: OcppAction[];
+  protocols?: Readonly<OcppProtocolVersion[]>;
+  actionsAllowed?: Readonly<OcppAction[]>;
   messageTimeout?: number;
   sessionTimeout?: number;
 };
