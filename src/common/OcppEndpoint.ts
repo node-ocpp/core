@@ -54,8 +54,14 @@ abstract class OcppEndpoint<
   protected inboundMessageHandlers: InboundOcppMessageHandler[];
   protected outboundMessageHandlers: OutboundOcppMessageHandler[];
 
-  protected abstract handleDrop(clientId: string): void;
-  protected abstract handleSend(message: OutboundOcppMessage): Promise<void>;
+  protected abstract handleDropSession(
+    clientId: string,
+    reason?: number,
+    force?: boolean
+  ): void;
+  protected abstract handleSendMessage(
+    message: OutboundOcppMessage
+  ): Promise<void>;
 
   constructor(
     config: TConfig,
@@ -129,17 +135,17 @@ abstract class OcppEndpoint<
     }
 
     await this.outboundMessageHandlers[0].handle(message);
-    await this.handleSend(message);
+    await this.handleSendMessage(message);
     this.emit('message_sent', message);
   }
 
-  public async dropSession(clientId: string) {
+  public async dropSession(clientId: string, reason?: number, force = false) {
     const session = await this.sessionService.get(clientId);
     if (session === null) {
       throw new Error(`Client with id ${clientId} is currently not connected`);
     }
 
-    await this.handleDrop(clientId);
+    await this.handleDropSession(clientId, reason);
     this.onSessionClosed(session);
   }
 
