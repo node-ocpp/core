@@ -5,7 +5,7 @@ import TypedEmitter from 'typed-emitter';
 import merge from 'lodash.merge';
 import os from 'os';
 
-import OcppSession, { OcppSessionService } from './OcppSession';
+import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OutboundOcppCallError } from './OcppCallErrorMessage';
@@ -41,6 +41,7 @@ type OcppEndpointEvents = {
   server_stopping: () => void;
   server_stopped: () => void;
   client_connected: (client: OcppSession) => void;
+  client_rejected: (request: OcppAuthenticationRequest) => void;
   client_disconnected: (client: OcppSession) => void;
   message_sent: (message: OutboundOcppMessage) => void;
   message_received: (message: InboundOcppMessage) => void;
@@ -186,8 +187,22 @@ abstract class OcppEndpoint<
     this.onSessionClosed(session);
   }
 
-  protected onConnectionAttempt(request: OcppAuthenticationRequest) {
-    this.authenticationHandlers[0].handle(request);
+  protected handleBasicAuth(request: BasicAuthenticationRequest) {
+    this.basicAuthHandlers[0].handle(request);
+  }
+
+  protected handleCertAuth(request: CertificateAuthenticationRequest) {
+    this.certAuthHandlers[0].handle(request);
+  }
+
+  protected onConnectionAccepted(request: OcppAuthenticationRequest) {
+    this.onSessionCreated(
+      new OcppSession(new OcppClient(request.client.id), request.protocol)
+    );
+  }
+
+  protected onConnectionRejected(request: OcppAuthenticationRequest) {
+    this.emit('client_rejected', request);
   }
 
   protected onSessionCreated(session: OcppSession) {
