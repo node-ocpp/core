@@ -3,6 +3,7 @@ import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage
 import MeterValue from '../structs/MeterValue';
 
 declare type MeterValuesRequest = InboundOcppCall<
+  'MeterValues',
   MeterValuesRequestPayload,
   null,
   MeterValuesResponse

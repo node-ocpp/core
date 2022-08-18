@@ -4,6 +4,7 @@ import IdToken from '../structs/IdToken';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type StartTransactionRequest = InboundOcppCall<
+  'StartTransaction',
   StartTransactionRequestPayload,
   StartTransactionResponsePayload,
   StartTransactionResponse

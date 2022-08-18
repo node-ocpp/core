@@ -2,6 +2,7 @@ import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
 import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
 
 declare type ResetRequest = OutboundOcppCall<
+  'Reset',
   ResetRequestPayload,
   ResetResponsePayload,
   ResetResponse

@@ -15,27 +15,33 @@ import {
   OutboundOcppMessageHandler,
 } from './OcppHandlers';
 
-interface OcppCallMessage<TPayload extends OcppMessagePayload>
-  extends OcppMessage {
-  readonly type: OcppMessageType.CALLRESULT;
-  action: OcppAction;
+interface OcppCallMessage<
+  TAction extends OcppAction = OcppAction,
+  TPayload extends OcppMessagePayload = OcppMessagePayload
+> extends OcppMessage {
+  readonly type: OcppMessageType.CALL;
+  action: TAction;
   data: TPayload;
 }
 
 class InboundOcppCall<
-  TPayload extends OcppMessagePayload = unknown,
-  TResponsePayload extends OcppMessagePayload = unknown,
-  TResponse extends OutboundOcppCallResult<TResponsePayload> = undefined
-> extends RespondableOcppMessage<TResponse> {
+    TAction extends OcppAction = OcppAction,
+    TPayload extends OcppMessagePayload = OcppMessagePayload,
+    TResponsePayload extends OcppMessagePayload = OcppMessagePayload,
+    TResponse extends OutboundOcppCallResult<TResponsePayload> = OutboundOcppCallResult<TResponsePayload>
+  >
+  extends RespondableOcppMessage<TResponse>
+  implements OcppCallMessage<TAction, TPayload>
+{
   type: OcppMessageType.CALL;
-  action: string;
+  action: TAction;
   data: TPayload;
 
   constructor(
     id: string,
-    sender: OcppClient,
-    action: string,
+    action: TAction,
     data: TPayload,
+    sender: OcppClient,
     responseHandler?: OutboundOcppMessageHandler<TResponse>
   ) {
     super(id, sender, responseHandler);
@@ -45,17 +51,21 @@ class InboundOcppCall<
 }
 
 class OutboundOcppCall<
-  TPayload extends OcppMessagePayload = unknown,
-  TResponsePayload extends OcppMessagePayload = unknown,
-  TResponse extends InboundOcppCallResult<TResponsePayload> = undefined
-> extends ResultingOcppMessage<TResponse> {
+    TAction extends OcppAction = OcppAction,
+    TPayload extends OcppMessagePayload = OcppMessagePayload,
+    TResponsePayload extends OcppMessagePayload = OcppMessagePayload,
+    TResponse extends InboundOcppCallResult<TResponsePayload> = InboundOcppCallResult<TResponsePayload>
+  >
+  extends ResultingOcppMessage<TResponse>
+  implements OcppCallMessage<TAction, TPayload>
+{
   type: OcppMessageType.CALL;
-  action: string;
+  action: TAction;
   data: TPayload;
 
   constructor(
     id: string,
-    action: string,
+    action: TAction,
     data: TPayload,
     recipient?: OcppClient,
     responseHandler?: InboundOcppMessageHandler<TResponse>

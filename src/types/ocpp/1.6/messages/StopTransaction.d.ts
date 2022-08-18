@@ -5,6 +5,7 @@ import MeterValue from '../structs/MeterValue';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type StopTransactionRequest = InboundOcppCall<
+  'StopTransaction',
   StopTransactionRequestPayload,
   StopTransactionResponsePayload,
   StopTransactionResponse
