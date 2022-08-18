@@ -1,23 +1,25 @@
 import { AsyncHandler } from './util/Handler';
+import { OcppClient } from './OcppSession';
 import OcppMessage, {
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
+import { OcppProtocolVersion } from './OcppEndpoint';
 
 abstract class OcppAuthenticationHandler<
-  OcppAuthenticationRequest
-> extends AsyncHandler<OcppAuthenticationRequest> {}
+  TRequest extends OcppAuthenticationRequest = OcppAuthenticationRequest
+> extends AsyncHandler<TRequest> {}
 
-abstract class OcppAuthenticationRequest {}
-
-interface CertificateAuthenticationHandler
-  extends OcppAuthenticationHandler<CertificateAuthenticationRequest> {
-  readonly id: string;
-  deny(): void;
+interface OcppAuthenticationRequest {
+  readonly client: OcppClient;
+  readonly protocol: OcppProtocolVersion;
   accept(): void;
+  reject(): void;
 }
 
-interface CertificateAuthenticationRequest {
+class CertificateAuthenticationHandler extends OcppAuthenticationHandler<CertificateAuthenticationRequest> {}
+
+interface CertificateAuthenticationRequest extends OcppAuthenticationRequest {
   readonly certificate: unknown;
 }
 
@@ -25,7 +27,7 @@ interface CertificateAuthenticationRequest {
 class BasicAuthenticationHandler
   extends OcppAuthenticationHandler<BasicAuthenticationRequest> {}
 
-interface BasicAuthenticationRequest {
+interface BasicAuthenticationRequest extends OcppAuthenticationRequest {
   readonly password: string;
 }
 
