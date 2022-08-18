@@ -134,12 +134,14 @@ abstract class OcppEndpoint<
       inboundMessage: {
         prefix: <InboundOcppMessageHandler[]>[
           new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
-          new Handlers.InboundActionsAllowedHandler(this.config.actionsAllowed),
+          new Handlers.InboundActionsAllowedHandler(this.config),
         ],
         suffix: <InboundOcppMessageHandler[]>[],
       },
       outboundMessage: {
-        prefix: <OutboundOcppMessageHandler[]>[],
+        prefix: <OutboundOcppMessageHandler[]>[
+          new Handlers.OutboundActionsAllowedHandler(this.config),
+        ],
         suffix: <OutboundOcppMessageHandler[]>[],
       },
     };

@@ -1,21 +1,24 @@
-import OcppAction from '../../types/ocpp/OcppAction';
 import { OutboundOcppCallError } from '../OcppCallErrorMessage';
-import { InboundOcppCall } from '../OcppCallMessage';
-import { InboundOcppMessageHandler } from '../OcppHandlers';
-import { InboundOcppMessage } from '../OcppMessage';
+import { InboundOcppCall, OutboundOcppCall } from '../OcppCallMessage';
+import { OcppEndpointConfig } from '../OcppEndpoint';
+import {
+  InboundOcppMessageHandler,
+  OutboundOcppMessageHandler,
+} from '../OcppHandlers';
+import { InboundOcppMessage, OutboundOcppMessage } from '../OcppMessage';
 
 class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
-  private actionsAllowed: Readonly<OcppAction[]>;
+  private config: OcppEndpointConfig;
 
-  constructor(actionsAllowed: Readonly<OcppAction[]>) {
+  constructor(config: OcppEndpointConfig) {
     super();
-    this.actionsAllowed = actionsAllowed;
+    this.config = config;
   }
 
   async handle(message: InboundOcppMessage) {
     if (
       message instanceof InboundOcppCall &&
-      !this.actionsAllowed.includes(message.action)
+      !this.config.actionsAllowed.includes(message.action)
     ) {
       throw new OutboundOcppCallError(
         message.id,
@@ -30,4 +33,24 @@ class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
   }
 }
 
-export { InboundActionsAllowedHandler };
+class OutboundActionsAllowedHandler extends OutboundOcppMessageHandler {
+  private config: OcppEndpointConfig;
+
+  constructor(config: OcppEndpointConfig) {
+    super();
+    this.config = config;
+  }
+
+  async handle(message: OutboundOcppMessage) {
+    if (
+      message instanceof OutboundOcppCall &&
+      !this.config.actionsAllowed.includes(message.action)
+    ) {
+      throw new Error(`Action ${message.action} is not supported`);
+    }
+
+    return super.handle(message);
+  }
+}
+
+export { InboundActionsAllowedHandler, OutboundActionsAllowedHandler };
