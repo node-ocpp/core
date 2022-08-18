@@ -13,6 +13,7 @@ import OcppAction, { OcppActions } from '../types/ocpp/OcppAction';
 import OcppProtocolVersion, {
   OcppProtocolVersions,
 } from '../types/ocpp/OcppProtocolVersion';
+import * as Handlers from './handlers';
 import {
   AsyncHandler,
   OcppAuthenticationHandler,
@@ -131,7 +132,9 @@ abstract class OcppEndpoint<
         suffix: <OcppAuthenticationHandler[]>[],
       },
       inboundMessage: {
-        prefix: <InboundOcppMessageHandler[]>[],
+        prefix: <InboundOcppMessageHandler[]>[
+          new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
+        ],
         suffix: <InboundOcppMessageHandler[]>[],
       },
       outboundMessage: {
