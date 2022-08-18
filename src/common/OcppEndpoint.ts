@@ -131,8 +131,9 @@ abstract class OcppEndpoint<
       },
       inboundMessage: {
         prefix: <InboundOcppMessageHandler[]>[
-          new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
           new Handlers.InboundActionsAllowedHandler(this.config),
+          new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
+          new Handlers.InboundPendingMessageHandler(this.sessionService),
         ],
         suffix: <InboundOcppMessageHandler[]>[],
       },
@@ -249,4 +250,4 @@ abstract class OcppEndpoint<
 }
 
 export default OcppEndpoint;
-export { OcppEndpointEvents, OcppEndpointConfig, OcppProtocolVersion };
+export { OcppEndpointEvents, OcppEndpointConfig };
