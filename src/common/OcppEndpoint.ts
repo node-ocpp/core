@@ -78,6 +78,9 @@ abstract class OcppEndpoint<
   ) {
     super();
     this.config = merge(OcppEndpoint.defaultConfig, config);
+    this.httpServer = http.createServer(this.config.httpOptions);
+    this.sessionService = sessionService;
+    this.sessionService.create();
 
     this.basicAuthHandlers = AsyncHandler.map([
       ...this.defaultHandlers.authentication.prefix,
@@ -106,11 +109,6 @@ abstract class OcppEndpoint<
       ...outboundMessageHandlers,
       ...this.defaultHandlers.outboundMessage.suffix,
     ]);
-
-    this.httpServer = http.createServer(this.config.httpOptions);
-
-    this.sessionService = sessionService;
-    this.sessionService.create();
   }
 
   protected static defaultHttpOptions: HTTPOptions = {};
@@ -191,7 +189,7 @@ abstract class OcppEndpoint<
       throw new Error(`Client with id ${clientId} is currently not connected`);
     }
 
-    await this.handleDropSession(clientId, reason);
+    await this.handleDropSession(clientId, reason, force);
     this.onSessionClosed(session);
   }
 
