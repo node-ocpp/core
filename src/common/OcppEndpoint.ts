@@ -130,7 +130,7 @@ abstract class OcppEndpoint<
         suffix: <OcppAuthenticationHandler[]>[],
       },
       inboundMessage: {
-        prefix: <InboundOcppMessageHandler[]>[
+        prefix: [
           new Handlers.InboundActionsAllowedHandler(this.config),
           new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
           new Handlers.InboundPendingMessageHandler(this.sessionService),
@@ -138,8 +138,9 @@ abstract class OcppEndpoint<
         suffix: <InboundOcppMessageHandler[]>[],
       },
       outboundMessage: {
-        prefix: <OutboundOcppMessageHandler[]>[
+        prefix: [
           new Handlers.OutboundActionsAllowedHandler(this.config),
+          new Handlers.OutboundPendingMessageHandler(this.sessionService),
         ],
         suffix: <OutboundOcppMessageHandler[]>[],
       },
