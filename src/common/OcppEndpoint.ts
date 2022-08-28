@@ -28,6 +28,7 @@ import {
 
 type OcppEndpointConfig = {
   port?: number;
+  path?: string;
   hostname?: string;
   httpOptions?: HTTPOptions;
   protocols?: Readonly<OcppProtocolVersion[]>;
@@ -77,7 +78,7 @@ abstract class OcppEndpoint<
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
-    this.config = merge(OcppEndpoint.defaultConfig, config);
+    this.config = merge(this.defaultConfig, config);
     this.httpServer = http.createServer(this.config.httpOptions);
     this.sessionService = sessionService;
     this.sessionService.create();
@@ -111,17 +112,22 @@ abstract class OcppEndpoint<
     ]);
   }
 
-  protected static defaultHttpOptions: HTTPOptions = {};
+  protected get defaultHttpOptions() {
+    return {} as HTTPOptions;
+  }
 
-  protected static defaultConfig: OcppEndpointConfig = {
-    port: process.env.NODE_ENV === 'development' ? 8080 : 80,
-    hostname: os.hostname(),
-    httpOptions: OcppEndpoint.defaultHttpOptions,
-    protocols: OcppProtocolVersions,
-    actionsAllowed: OcppActions,
-    messageTimeout: 30000,
-    sessionTimeout: 60000,
-  };
+  protected get defaultConfig() {
+    return {
+      port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+      path: 'ocpp',
+      hostname: os.hostname(),
+      httpOptions: this.defaultHttpOptions,
+      protocols: OcppProtocolVersions,
+      actionsAllowed: OcppActions,
+      messageTimeout: 30000,
+      sessionTimeout: 60000,
+    } as OcppEndpointConfig;
+  }
 
   protected get defaultHandlers() {
     return {
@@ -195,12 +201,12 @@ abstract class OcppEndpoint<
     this.onSessionClosed(session);
   }
 
-  protected handleBasicAuth(request: BasicAuthenticationRequest) {
-    this.basicAuthHandlers[0].handle(request);
+  protected async handleBasicAuth(request: BasicAuthenticationRequest) {
+    await this.basicAuthHandlers[0].handle(request);
   }
 
-  protected handleCertAuth(request: CertificateAuthenticationRequest) {
-    this.certAuthHandlers[0].handle(request);
+  protected async handleCertAuth(request: CertificateAuthenticationRequest) {
+    await this.certAuthHandlers[0].handle(request);
   }
 
   protected onConnectionAccepted(request: OcppAuthenticationRequest) {

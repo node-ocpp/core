@@ -14,7 +14,7 @@ interface OcppAuthenticationRequest {
   readonly client: OcppClient;
   readonly protocol: OcppProtocolVersion;
   accept(): void;
-  reject(): void;
+  reject(reason?: any): void;
 }
 
 class CertificateAuthenticationHandler extends OcppAuthenticationHandler<CertificateAuthenticationRequest> {}
