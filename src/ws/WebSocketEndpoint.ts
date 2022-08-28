@@ -2,10 +2,8 @@ import path from 'path';
 import merge from 'lodash.merge';
 import { Server as WSServer, ServerOptions as WSOptions } from 'ws';
 
-import OcppEndpoint, {
-  OcppEndpointConfig,
-  OcppProtocolVersion,
-} from '../common/OcppEndpoint';
+import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
+import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
 import OcppAction from '../types/ocpp/OcppAction';
 import { OutboundOcppMessage } from '../common/OcppMessage';
 import { OcppSessionService } from '../common/OcppSession';

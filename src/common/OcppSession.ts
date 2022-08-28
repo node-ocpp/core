@@ -1,5 +1,5 @@
 import { InboundOcppCall, OutboundOcppCall } from './OcppCallMessage';
-import { OcppProtocolVersion } from './OcppEndpoint';
+import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
 
 class OcppSession {
   readonly client: OcppClient;

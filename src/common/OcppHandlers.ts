@@ -4,7 +4,7 @@ import OcppMessage, {
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
-import { OcppProtocolVersion } from './OcppEndpoint';
+import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
 
 abstract class OcppAuthenticationHandler<
   TRequest extends OcppAuthenticationRequest = OcppAuthenticationRequest
