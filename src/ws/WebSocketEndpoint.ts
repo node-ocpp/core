@@ -1,5 +1,5 @@
+/* eslint-disable node/no-unpublished-require */
 import path from 'path';
-import merge from 'lodash.merge';
 import basicAuth from 'basic-auth';
 import { URL } from 'url';
 import { Buffer } from 'buffer';
@@ -9,8 +9,9 @@ import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
 
 import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
 import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
+import OcppMessageType from '../types/ocpp/OcppMessageType';
 import OcppAction from '../types/ocpp/OcppAction';
-import { OutboundOcppMessage } from '../common/OcppMessage';
+import { InboundOcppMessage, OutboundOcppMessage } from '../common/OcppMessage';
 import OcppSession, {
   OcppClient,
   OcppSessionService,
@@ -21,6 +22,12 @@ import {
   OcppAuthenticationRequest,
   OutboundOcppMessageHandler,
 } from '../common/OcppHandlers';
+import {
+  InboundOcppCallError,
+  OutboundOcppCallError,
+} from '../common/OcppCallErrorMessage';
+import { InboundOcppCall } from '../common/OcppCallMessage';
+import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
 
 type WebSocketConfig = OcppEndpointConfig & {
   protocols?: Readonly<WebSocketProtocolVersion[]>;
@@ -142,15 +149,111 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       );
     }
 
-    await this.handleAuthentication(authRequest);
+    await this.onAuthenticationAttempt(authRequest);
   }
 
   protected async handleConnect(
     ws: WebSocket,
     request: HTTPRequest,
-    client?: OcppClient
+    client: OcppClient
   ) {
-    throw new Error('Method not implemented.');
+    ws.on('message', async (data, isBinary) => {
+      if (isBinary) {
+        throw new Error(
+          `Received binary message from client with id
+          ${client.id} which is currently not supported`
+        );
+      }
+
+      const errorResponse = new OutboundOcppCallError(
+        null,
+        'ProtocolError',
+        null,
+        null,
+        client
+      );
+
+      let rawMessage;
+      try {
+        rawMessage = JSON.parse(data.toString());
+      } catch (e) {
+        errorResponse.description = 'Invalid JSON format';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Error while attempting to deserialize JSON
+            message from client with id ${client.id}`,
+            { cause: e as Error }
+          );
+        });
+      }
+
+      if (
+        typeof rawMessage.type !== 'number' ||
+        !Object.values(OcppMessageType).includes(rawMessage.type) ||
+        typeof rawMessage.id !== 'string' ||
+        (rawMessage.type === OcppMessageType.CALL &&
+          typeof rawMessage.action !== 'string')
+      ) {
+        errorResponse.description = 'Invalid message type, id or action';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Received message from client with id ${client.id}
+            without valid message type, id or action field`
+          );
+        });
+      }
+
+      if (this.config.validateSchema) {
+        const session = await this.sessionService.get(client.id);
+        const action =
+          rawMessage.type === OcppMessageType.CALL
+            ? rawMessage.action
+            : session.pendingOutboundMessage.action;
+
+        const validation = this.validateSchema(
+          'inbound',
+          action,
+          rawMessage,
+          session.protocol
+        );
+
+        if (!validation) {
+          return; // to be implemented
+        }
+      }
+
+      let message: InboundOcppMessage;
+      switch (rawMessage.type) {
+        case OcppMessageType.CALL:
+          message = new InboundOcppCall(
+            rawMessage.id,
+            rawMessage.action,
+            rawMessage.data,
+            client
+          );
+          break;
+
+        case OcppMessageType.CALLRESULT:
+          message = new InboundOcppCallResult(
+            rawMessage.id,
+            client,
+            rawMessage.data
+          );
+          break;
+
+        case OcppMessageType.CALLERROR:
+          message = new InboundOcppCallError(
+            rawMessage.id,
+            client,
+            rawMessage.code,
+            rawMessage.description,
+            rawMessage.details
+          );
+          break;
+      }
+
+      this.onInboundMessage(message);
+    });
   }
 
   protected handleDisconnect() {
@@ -160,7 +263,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected async loadSchemas(
     direction: 'inbound' | 'outbound',
     action: OcppAction,
-    protocolVersion?: OcppProtocolVersion[]
+    protocolVersion?: OcppProtocolVersion
   ) {
     throw new Error('Method not implemented.');
   }
@@ -169,7 +272,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     direction: 'inbound' | 'outbound',
     action: OcppAction,
     message: string,
-    protocolVersion?: OcppProtocolVersion[]
+    protocolVersion?: OcppProtocolVersion
   ) {
     throw new Error('Method not implemented.');
   }
