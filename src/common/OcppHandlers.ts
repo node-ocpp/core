@@ -10,25 +10,48 @@ abstract class OcppAuthenticationHandler<
   TRequest extends OcppAuthenticationRequest = OcppAuthenticationRequest
 > extends AsyncHandler<TRequest> {}
 
-interface OcppAuthenticationRequest {
+abstract class OcppAuthenticationRequest<TParent = unknown> {
+  private _accepted = false;
+  private _rejected = false;
+
   readonly client: OcppClient;
   readonly protocol: OcppProtocolVersion;
-  accept(): void;
-  reject(reason?: any): void;
-}
+  readonly password?: string;
+  readonly certificate?: unknown;
 
-class CertificateAuthenticationHandler extends OcppAuthenticationHandler<CertificateAuthenticationRequest> {}
+  constructor(protected _parent: TParent = undefined) {}
 
-interface CertificateAuthenticationRequest extends OcppAuthenticationRequest {
-  readonly certificate: unknown;
-}
+  accept() {
+    if (this.isAccepted || this.isRejected) {
+      throw new Error(
+        `accept() was called but authentication attempt from
+        client with id ${this.client.id} has already been
+        ${this.isAccepted ? 'accepted' : this.isRejected ? 'rejected' : ''}`
+      );
+    }
 
-// eslint-disable-next-line prettier/prettier
-class BasicAuthenticationHandler
-  extends OcppAuthenticationHandler<BasicAuthenticationRequest> {}
+    this._accepted = true;
+  }
 
-interface BasicAuthenticationRequest extends OcppAuthenticationRequest {
-  readonly password: string;
+  reject(reason?: any) {
+    if (this.isAccepted || this.isRejected) {
+      throw new Error(
+        `reject() was called but authentication attempt from
+        client with id ${this.client.id} has already been
+        ${this.isAccepted ? 'accepted' : this.isRejected ? 'rejected' : ''}`
+      );
+    }
+
+    this._rejected = true;
+  }
+
+  get isAccepted() {
+    return this._accepted;
+  }
+
+  get isRejected() {
+    return this._rejected;
+  }
 }
 
 abstract class OcppMessageHandler<
@@ -43,15 +66,10 @@ abstract class OutboundOcppMessageHandler<
   TMessage extends OutboundOcppMessage = OutboundOcppMessage
 > extends OcppMessageHandler<TMessage> {}
 
-export default AsyncHandler;
 export {
   AsyncHandler,
   OcppAuthenticationHandler,
   OcppAuthenticationRequest,
-  BasicAuthenticationHandler,
-  BasicAuthenticationRequest,
-  CertificateAuthenticationHandler,
-  CertificateAuthenticationRequest,
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 };

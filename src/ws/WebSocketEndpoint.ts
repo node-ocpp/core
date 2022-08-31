@@ -16,10 +16,8 @@ import OcppSession, {
   OcppSessionService,
 } from '../common/OcppSession';
 import {
-  BasicAuthenticationHandler,
-  BasicAuthenticationRequest,
-  CertificateAuthenticationHandler,
   InboundOcppMessageHandler,
+  OcppAuthenticationHandler,
   OcppAuthenticationRequest,
   OutboundOcppMessageHandler,
 } from '../common/OcppHandlers';
@@ -36,10 +34,6 @@ type WebSocketConfig = OcppEndpointConfig & {
 const WebSocketProtocolVersions = ['ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'] as const;
 type WebSocketProtocolVersion = typeof WebSocketProtocolVersions[number];
 
-type WebSocketAuthenticationHandler =
-  | BasicAuthenticationHandler
-  | CertificateAuthenticationHandler;
-
 class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected wsServer: WSServer;
 
@@ -48,7 +42,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
   constructor(
     config: WebSocketConfig,
-    authenticationHandlers: WebSocketAuthenticationHandler[],
+    authenticationHandlers: OcppAuthenticationHandler[],
     inboundMessageHandlers: InboundOcppMessageHandler[],
     outboundMessageHandlers?: OutboundOcppMessageHandler[],
     sessionService?: OcppSessionService
@@ -96,80 +90,59 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     socket: Duplex,
     head: Buffer
   ) {
-    let accepted = false,
-      rejected = false;
-
     const basicCredentials = basicAuth(request);
     const requestPath = path.parse(new URL(request.url).pathname);
-    const client = new OcppClient(requestPath.base);
-    const protocol = request.headers[
-      'sec-websocket-protocol'
-    ] as OcppProtocolVersion;
 
-    const authRequest = <OcppAuthenticationRequest>{
-      client,
-      protocol,
+    const authRequest =
+      new (class extends OcppAuthenticationRequest<WebSocketEndpoint> {
+        client = new OcppClient(requestPath.base);
+        protocol = request.headers[
+          'sec-websocket-protocol'
+        ] as OcppProtocolVersion;
 
-      accept: () => {
-        if (accepted || rejected) {
-          throw new Error(
-            `accept() was called but authentication attempt from
-            client with id ${client.id} has already been
-            ${accepted ? 'accepted' : rejected ? 'rejected' : ''}`
+        password = this._parent.config.basicAuth
+          ? basicCredentials?.pass
+          : null;
+
+        accept() {
+          super.accept();
+          this._parent.onSessionCreated(
+            new OcppSession(this.client, this.protocol)
           );
+          this._parent.wsServer.handleUpgrade(request, socket, head, ws => {
+            this._parent.wsServer.emit('connection', ws, request, this.client);
+          });
         }
 
-        accepted = true;
-        this.onSessionCreated(new OcppSession(client, protocol));
-        this.wsServer.handleUpgrade(request, socket, head, ws => {
-          this.wsServer.emit('connection', ws, request, client);
-        });
-      },
-
-      /* eslint-disable @typescript-eslint/no-inferrable-types */
-      reject: (status: number = 401) => {
-        if (accepted || rejected) {
-          throw new Error(
-            `reject() was called but authentication attempt from
-            client with id ${client.id} has already been
-            ${accepted ? 'accepted' : rejected ? 'rejected' : ''}`
-          );
+        reject(status = 401) {
+          super.reject();
+          this._parent.onConnectionRejected(authRequest);
+          socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
+          socket.destroy();
         }
+      })(this);
 
-        rejected = true;
-        this.onConnectionRejected(authRequest);
-        socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
-        socket.destroy();
-      },
-    };
-
-    if (!this.config.protocols.includes(protocol)) {
+    if (!this.config.protocols.includes(authRequest.protocol)) {
       authRequest.reject(400);
       throw new Error(
-        `Client with id ${client.id} attempted authentication
-        with unsupported subprotocol ${protocol}`
+        `Client with id ${authRequest.client.id} attempted authentication
+        with unsupported subprotocol ${authRequest.protocol}`
       );
     }
 
-    if (this.config.basicAuth && basicCredentials?.name !== client.id) {
+    if (
+      this.config.basicAuth &&
+      basicCredentials?.name !== authRequest.client.id
+    ) {
       authRequest.reject(400);
       throw new Error(
-        `Client attempted authentication with mismatching ids ${client.id}
-        in request path and ${basicCredentials.name} in BASIC credentials`
+        `Client attempted authentication with mismatching IDs
+        ${authRequest.client.id} in request path and ${basicCredentials.name}
+        in BASIC credentials`
       );
     }
 
-    if (this.config.basicAuth && basicCredentials) {
-      const basicAuthRequest = <BasicAuthenticationRequest>{
-        ...authRequest,
-        password: basicCredentials.pass,
-      };
-      await this.handleBasicAuth(basicAuthRequest);
-
-      if (accepted || rejected) {
-        return;
-      }
-    }
+    await this.handleAuthentication(authRequest);
   }
 
   protected async handleConnect(

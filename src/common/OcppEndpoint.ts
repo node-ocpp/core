@@ -20,10 +20,6 @@ import {
   OcppAuthenticationRequest,
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
-  BasicAuthenticationHandler,
-  BasicAuthenticationRequest,
-  CertificateAuthenticationHandler,
-  CertificateAuthenticationRequest,
 } from './OcppHandlers';
 
 type OcppEndpointConfig = {
@@ -56,8 +52,7 @@ abstract class OcppEndpoint<
 
   protected httpServer: HTTPServer;
   protected sessionService: OcppSessionService;
-  protected basicAuthHandlers: BasicAuthenticationHandler[];
-  protected certAuthHandlers: CertificateAuthenticationHandler[];
+  protected authenticationHandlers: OcppAuthenticationHandler[];
   protected inboundMessageHandlers: InboundOcppMessageHandler[];
   protected outboundMessageHandlers: OutboundOcppMessageHandler[];
 
@@ -79,25 +74,19 @@ abstract class OcppEndpoint<
   ) {
     super();
     this.config = merge(this.defaultConfig, config);
-    this.httpServer = http.createServer(this.config.httpOptions);
+
+    this.httpServer = this.config.https
+      ? http.createServer(this.config.httpOptions)
+      : https.createServer(this.config.httpOptions);
+
     this.sessionService = sessionService;
     this.sessionService.create();
 
-    this.basicAuthHandlers = AsyncHandler.map([
+    this.authenticationHandlers = AsyncHandler.map([
       ...this.defaultHandlers.authentication.prefix,
-      ...authenticationHandlers.filter(
-        handler => handler instanceof BasicAuthenticationHandler
-      ),
+      ...authenticationHandlers,
       ...this.defaultHandlers.authentication.suffix,
-    ]) as BasicAuthenticationHandler[];
-
-    this.certAuthHandlers = AsyncHandler.map([
-      ...this.defaultHandlers.authentication.prefix,
-      ...authenticationHandlers.filter(
-        handler => handler instanceof CertificateAuthenticationHandler
-      ),
-      ...this.defaultHandlers.authentication.suffix,
-    ]) as CertificateAuthenticationHandler[];
+    ]);
 
     this.inboundMessageHandlers = AsyncHandler.map([
       ...this.defaultHandlers.inboundMessage.prefix,
@@ -201,12 +190,8 @@ abstract class OcppEndpoint<
     this.onSessionClosed(session);
   }
 
-  protected async handleBasicAuth(request: BasicAuthenticationRequest) {
-    await this.basicAuthHandlers[0].handle(request);
-  }
-
-  protected async handleCertAuth(request: CertificateAuthenticationRequest) {
-    await this.certAuthHandlers[0].handle(request);
+  protected async onAuthenticationAttempt(request: OcppAuthenticationRequest) {
+    await this.authenticationHandlers[0].handle(request);
   }
 
   protected onConnectionAccepted(request: OcppAuthenticationRequest) {
