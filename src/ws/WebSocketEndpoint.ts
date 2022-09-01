@@ -92,11 +92,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     throw new Error('Method not implemented.');
   }
 
-  protected async handleUpgrade(
-    request: HTTPRequest,
-    socket: Duplex,
-    head: Buffer
-  ) {
+  protected handleUpgrade(request: HTTPRequest, socket: Duplex, head: Buffer) {
     const basicCredentials = basicAuth(request);
     const basicAuthEnabled = this.config.basicAuth;
     const requestPath = path.parse(new URL(request.url).pathname);
@@ -159,7 +155,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.onAuthenticationAttempt(authRequest);
   }
 
-  protected async handleConnect(
+  protected handleConnect(
     ws: WebSocket,
     request: HTTPRequest,
     client: OcppClient
