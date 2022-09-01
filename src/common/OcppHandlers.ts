@@ -10,16 +10,18 @@ abstract class OcppAuthenticationHandler<
   TRequest extends OcppAuthenticationRequest = OcppAuthenticationRequest
 > extends AsyncHandler<TRequest> {}
 
-abstract class OcppAuthenticationRequest<TParent = unknown> {
-  private _accepted = false;
-  private _rejected = false;
+abstract class OcppAuthenticationRequest {
+  private _accepted: boolean;
+  private _rejected: boolean;
 
   readonly client: OcppClient;
   readonly protocol: OcppProtocolVersion;
   readonly password?: string;
   readonly certificate?: unknown;
 
-  constructor(protected _parent: TParent = undefined) {}
+  constructor() {
+    this._accepted = this._rejected = false;
+  }
 
   accept() {
     if (this.isAccepted || this.isRejected) {

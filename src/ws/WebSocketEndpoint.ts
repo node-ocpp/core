@@ -98,36 +98,43 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     head: Buffer
   ) {
     const basicCredentials = basicAuth(request);
+    const basicAuthEnabled = this.config.basicAuth;
     const requestPath = path.parse(new URL(request.url).pathname);
 
-    const authRequest =
-      new (class extends OcppAuthenticationRequest<WebSocketEndpoint> {
-        client = new OcppClient(requestPath.base);
-        protocol = request.headers[
-          'sec-websocket-protocol'
-        ] as OcppProtocolVersion;
+    const authRequest = new (class extends OcppAuthenticationRequest {
+      client = new OcppClient(requestPath.base);
+      protocol = request.headers[
+        'sec-websocket-protocol'
+      ] as OcppProtocolVersion;
 
-        password = this._parent.config.basicAuth
-          ? basicCredentials?.pass
-          : null;
+      password = basicAuthEnabled ? basicCredentials?.pass : null;
 
-        accept() {
-          super.accept();
-          this._parent.onSessionCreated(
-            new OcppSession(this.client, this.protocol)
-          );
-          this._parent.wsServer.handleUpgrade(request, socket, head, ws => {
-            this._parent.wsServer.emit('connection', ws, request, this.client);
-          });
-        }
+      accept() {
+        super.accept();
+        acceptRequest();
+      }
 
-        reject(status = 401) {
-          super.reject();
-          this._parent.onConnectionRejected(authRequest);
-          socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
-          socket.destroy();
-        }
-      })(this);
+      reject(status = 401) {
+        super.reject();
+        rejectRequest(status);
+      }
+    })();
+
+    const acceptRequest = () => {
+      this.onSessionCreated(
+        new OcppSession(authRequest.client, authRequest.protocol)
+      );
+      this.wsServer.handleUpgrade(request, socket, head, ws => {
+        this.wsServer.emit('connection', ws, request, authRequest.client);
+        return true;
+      });
+    };
+
+    const rejectRequest = (status: number) => {
+      this.onConnectionRejected(authRequest);
+      socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
+      socket.destroy();
+    };
 
     if (!this.config.protocols.includes(authRequest.protocol)) {
       authRequest.reject(400);
@@ -143,13 +150,13 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     ) {
       authRequest.reject(400);
       throw new Error(
-        `Client attempted authentication with mismatching IDs
+        `Client attempted authentication with mismatching ids
         ${authRequest.client.id} in request path and ${basicCredentials.name}
         in BASIC credentials`
       );
     }
 
-    await this.onAuthenticationAttempt(authRequest);
+    this.onAuthenticationAttempt(authRequest);
   }
 
   protected async handleConnect(
