@@ -41,10 +41,10 @@ abstract class InboundOcppMessage extends OcppMessage {
 }
 
 abstract class OutboundOcppMessage extends OcppMessage {
-  recipient?: OcppClient;
-  _isSent: boolean;
+  recipient: OcppClient;
+  private _isSent: boolean;
 
-  constructor(id: string, recipient?: OcppClient) {
+  constructor(id: string, recipient: OcppClient) {
     super(id);
     this.recipient = recipient;
     this._isSent = false;

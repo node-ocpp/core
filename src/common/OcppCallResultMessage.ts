@@ -35,7 +35,7 @@ class OutboundOcppCallResult<TPayload extends OcppMessagePayload = unknown>
   action: OcppAction;
   data: TPayload;
 
-  constructor(id: string, data: TPayload, recipient?: OcppClient) {
+  constructor(id: string, recipient: OcppClient, data: TPayload) {
     super(id, recipient);
     this.data = data;
   }
