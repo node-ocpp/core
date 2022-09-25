@@ -1,7 +1,9 @@
-/* eslint-disable node/no-unpublished-import */
+// eslint-disable-next-line node/no-unpublished-import
+import TypedEmitter from 'typed-emitter';
+// eslint-disable-next-line prettier/prettier
+import https, { Server as HTTPSServer, ServerOptions as HTTPSOptions } from 'https';
 import http, { Server as HTTPServer, ServerOptions as HTTPOptions } from 'http';
 import { EventEmitter } from 'events';
-import TypedEmitter from 'typed-emitter';
 import merge from 'lodash.merge';
 import os from 'os';
 
@@ -25,7 +27,8 @@ import {
 type OcppEndpointConfig = {
   port?: number;
   hostname?: string;
-  httpOptions?: HTTPOptions;
+  https?: boolean;
+  httpOptions?: HTTPOptions | HTTPSOptions;
   protocols?: Readonly<OcppProtocolVersion[]>;
   actionsAllowed?: Readonly<OcppAction[]>;
   messageTimeout?: number;
@@ -49,7 +52,7 @@ abstract class OcppEndpoint<
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
   public readonly config: TConfig;
 
-  protected httpServer: HTTPServer;
+  protected httpServer: HTTPServer | HTTPSServer;
   protected sessionService: OcppSessionService;
   protected authenticationHandlers: OcppAuthenticationHandler[];
   protected inboundMessageHandlers: InboundOcppMessageHandler[];
