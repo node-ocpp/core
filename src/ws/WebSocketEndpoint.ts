@@ -70,7 +70,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
   protected get defaultWsOptions() {
     return {
-      path: this.config.path,
+      path: 'ocpp',
       noServer: true,
     } as WSOptions;
   }

@@ -24,7 +24,6 @@ import {
 
 type OcppEndpointConfig = {
   port?: number;
-  path?: string;
   hostname?: string;
   httpOptions?: HTTPOptions;
   protocols?: Readonly<OcppProtocolVersion[]>;
@@ -108,7 +107,6 @@ abstract class OcppEndpoint<
   protected get defaultConfig() {
     return {
       port: process.env.NODE_ENV === 'development' ? 8080 : 80,
-      path: 'ocpp',
       hostname: os.hostname(),
       httpOptions: this.defaultHttpOptions,
       protocols: OcppProtocolVersions,
