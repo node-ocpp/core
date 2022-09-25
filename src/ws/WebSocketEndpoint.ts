@@ -79,7 +79,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     return {
       protocols: WebSocketProtocolVersions,
       wsOptions: this.defaultWsOptions,
-      schemaDir: path.join(__dirname, '../../var/jsonschema'),
+      schemaDir: path.join(__dirname, '../../../var/jsonschema'),
       validateSchema: true,
     } as WebSocketConfig;
   }
