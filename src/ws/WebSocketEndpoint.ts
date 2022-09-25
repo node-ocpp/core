@@ -63,9 +63,9 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     );
 
     this.wsServer = new WSServer(this.config.wsOptions);
-    this.httpServer.on('upgrade', this.handleUpgrade);
-    this.wsServer.on('connection', this.handleConnect);
-    this.wsServer.on('close', this.handleDisconnect);
+    this.httpServer.on('upgrade', this.handleHttpUpgrade);
+    this.wsServer.on('connection', this.handleWsConnect);
+    this.wsServer.on('close', this.handleWsDisconnect);
   }
 
   protected get defaultWsOptions() {
@@ -92,7 +92,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     throw new Error('Method not implemented.');
   }
 
-  protected handleUpgrade(request: HTTPRequest, socket: Duplex, head: Buffer) {
+  protected handleHttpUpgrade(
+    request: HTTPRequest,
+    socket: Duplex,
+    head: Buffer
+  ) {
     const basicCredentials = basicAuth(request);
     const basicAuthEnabled = this.config.basicAuth;
     const requestPath = path.parse(new URL(request.url).pathname);
@@ -155,7 +159,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.onAuthenticationAttempt(authRequest);
   }
 
-  protected handleConnect(
+  protected handleWsConnect(
     ws: WebSocket,
     request: HTTPRequest,
     client: OcppClient
@@ -259,7 +263,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     });
   }
 
-  protected handleDisconnect() {
+  protected handleWsDisconnect() {
     throw new Error('Method not implemented.');
   }
 
