@@ -28,6 +28,7 @@ import {
 } from '../common/OcppCallErrorMessage';
 import { InboundOcppCall } from '../common/OcppCallMessage';
 import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
+import merge from 'lodash.merge';
 
 type WebSocketConfig = OcppEndpointConfig & {
   protocols?: Readonly<WebSocketProtocolVersion[]>;
@@ -61,6 +62,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       outboundMessageHandlers,
       sessionService
     );
+    merge(this.config, this.defaultConfig);
 
     this.wsServer = new WSServer(this.config.wsOptions);
     this.httpServer.on('upgrade', this.handleHttpUpgrade);
