@@ -102,10 +102,10 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   ) => {
     const basicCredentials = basicAuth(request);
     const basicAuthEnabled = this.config.basicAuth;
-    const requestPath = path.parse(new URL(request.url).pathname);
+    const clientId = path.parse(request.url).base;
 
     const authRequest = new (class extends OcppAuthenticationRequest {
-      client = new OcppClient(requestPath.base);
+      client = new OcppClient(clientId);
       protocol = request.headers[
         'sec-websocket-protocol'
       ] as OcppProtocolVersion;
@@ -147,14 +147,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       );
     }
 
-    if (
-      this.config.basicAuth &&
-      basicCredentials?.name !== authRequest.client.id
-    ) {
+    if (this.config.basicAuth && basicCredentials?.name !== clientId) {
       authRequest.reject(400);
       throw new Error(
         `Client attempted authentication with mismatching ids
-        ${authRequest.client.id} in request path and ${basicCredentials.name}
+        ${clientId} in request path and ${basicCredentials.name}
         in BASIC credentials`
       );
     }
