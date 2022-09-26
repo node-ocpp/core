@@ -51,7 +51,7 @@ type OcppEndpointEvents = {
 abstract class OcppEndpoint<
   TConfig extends OcppEndpointConfig
 > extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
-  public readonly config: TConfig;
+  protected _config: TConfig;
 
   protected httpServer: HTTPServer | HTTPSServer;
   protected sessionService: OcppSessionService;
@@ -76,7 +76,7 @@ abstract class OcppEndpoint<
     sessionService: OcppSessionService = new LocalSessionService()
   ) {
     super();
-    this.config = merge(this.defaultConfig, config);
+    this._config = merge(this.defaultConfig, config);
 
     this.httpServer = this.config.https
       ? https.createServer(this.config.httpOptions)
@@ -144,6 +144,10 @@ abstract class OcppEndpoint<
         suffix: <OutboundOcppMessageHandler[]>[],
       },
     };
+  }
+
+  public get config() {
+    return this._config;
   }
 
   public get isListening() {
