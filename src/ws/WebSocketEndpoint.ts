@@ -104,17 +104,21 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     const basicAuthEnabled = this.config.basicAuth;
     const clientId = path.parse(request.url).base;
 
+    const clientProtocols =
+      request.headers['sec-websocket-protocol']?.split(',');
+    const supportedProtocols = this.config.protocols.filter(protocol =>
+      clientProtocols?.includes(protocol)
+    ) as WebSocketProtocolVersion[];
+
     const authRequest = new (class extends OcppAuthenticationRequest {
       client = new OcppClient(clientId);
-      protocol = request.headers[
-        'sec-websocket-protocol'
-      ] as OcppProtocolVersion;
+      protocols = supportedProtocols;
 
-      password = basicAuthEnabled ? basicCredentials?.pass : null;
+      password = basicAuthEnabled ? basicCredentials?.pass : undefined;
 
-      accept() {
-        super.accept();
-        acceptRequest();
+      accept(protocol = this.protocols[0]) {
+        super.accept(protocol);
+        acceptRequest(protocol);
       }
 
       reject(status = 401) {
@@ -123,10 +127,9 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       }
     })();
 
-    const acceptRequest = () => {
-      this.onSessionCreated(
-        new OcppSession(authRequest.client, authRequest.protocol)
-      );
+    const acceptRequest = (protocol: OcppProtocolVersion) => {
+      this.onSessionCreated(new OcppSession(authRequest.client, protocol));
+
       this.wsServer.handleUpgrade(request, socket, head, ws => {
         this.wsServer.emit('connection', ws, request, authRequest.client);
         return true;
@@ -139,11 +142,19 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       socket.destroy();
     };
 
-    if (!this.config.protocols.includes(authRequest.protocol)) {
+    if (!clientProtocols) {
       authRequest.reject(400);
       throw new Error(
-        `Client with id ${authRequest.client.id} attempted authentication
-        with unsupported subprotocol ${authRequest.protocol}`
+        `Client with id ${clientId} attempted authentication
+        without specifying any WebSocket subprotocol`
+      );
+    }
+
+    if (supportedProtocols.length === 0) {
+      authRequest.reject(400);
+      throw new Error(
+        `Client with id ${clientId} attempted authentication
+        with unsupported WebSocket subprotocol(s) ${clientProtocols}`
       );
     }
 

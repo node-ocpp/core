@@ -13,9 +13,10 @@ abstract class OcppAuthenticationHandler<
 abstract class OcppAuthenticationRequest {
   private _accepted: boolean;
   private _rejected: boolean;
+  private _protocol: OcppProtocolVersion;
 
   readonly client: OcppClient;
-  readonly protocol: OcppProtocolVersion;
+  readonly protocols: OcppProtocolVersion[];
   readonly password?: string;
   readonly certificate?: unknown;
 
@@ -23,7 +24,7 @@ abstract class OcppAuthenticationRequest {
     this._accepted = this._rejected = false;
   }
 
-  accept() {
+  accept(protocol: OcppProtocolVersion = this.protocols[0]) {
     if (this.isAccepted || this.isRejected) {
       throw new Error(
         `accept() was called but authentication attempt from
@@ -33,9 +34,10 @@ abstract class OcppAuthenticationRequest {
     }
 
     this._accepted = true;
+    this._protocol = protocol;
   }
 
-  reject(reason?: any) {
+  reject(reason?: unknown) {
     if (this.isAccepted || this.isRejected) {
       throw new Error(
         `reject() was called but authentication attempt from
@@ -53,6 +55,10 @@ abstract class OcppAuthenticationRequest {
 
   get isRejected() {
     return this._rejected;
+  }
+
+  get protocol() {
+    return this._protocol;
   }
 }
 
