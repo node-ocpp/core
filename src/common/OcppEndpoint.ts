@@ -31,6 +31,7 @@ type OcppEndpointConfig = {
   httpOptions?: HTTPOptions | HTTPSOptions;
   protocols?: Readonly<OcppProtocolVersion[]>;
   actionsAllowed?: Readonly<OcppAction[]>;
+  maxConnections?: number;
   messageTimeout?: number;
   sessionTimeout?: number;
 };
@@ -115,6 +116,7 @@ abstract class OcppEndpoint<
       httpOptions: this.defaultHttpOptions,
       protocols: OcppProtocolVersions,
       actionsAllowed: OcppActions,
+      maxConnections: 511,
       messageTimeout: 30000,
       sessionTimeout: 60000,
     } as OcppEndpointConfig;
