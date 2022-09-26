@@ -2,7 +2,6 @@
 import path from 'path';
 import basicAuth from 'basic-auth';
 import { URL } from 'url';
-import { Buffer } from 'buffer';
 import { Duplex } from 'stream';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
