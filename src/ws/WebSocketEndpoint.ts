@@ -1,7 +1,6 @@
 /* eslint-disable node/no-unpublished-require */
-import path from 'path';
 import basicAuth from 'basic-auth';
-import { URL } from 'url';
+import path from 'path';
 import { Duplex } from 'stream';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
@@ -100,9 +99,9 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     socket: Duplex,
     head: Buffer
   ) => {
+    const requestPath = path.parse(request.url);
     const basicCredentials = basicAuth(request);
     const basicAuthEnabled = this.config.basicAuth;
-    const clientId = path.parse(request.url).base;
 
     const clientProtocols =
       request.headers['sec-websocket-protocol']?.split(',');
@@ -111,7 +110,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     ) as WebSocketProtocolVersion[];
 
     const authRequest = new (class extends OcppAuthenticationRequest {
-      client = new OcppClient(clientId);
+      client = new OcppClient(requestPath.base);
       protocols = supportedProtocols;
 
       password = basicAuthEnabled ? basicCredentials?.pass : undefined;
@@ -142,10 +141,21 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       socket.destroy();
     };
 
+    const removeSlashesRegex = /^\/+|\/+$/g;
+    if (
+      requestPath.dir.replaceAll(removeSlashesRegex, '') !==
+      this.config.wsOptions.path.replaceAll(removeSlashesRegex, '')
+    ) {
+      authRequest.reject(400);
+      throw new Error(
+        `Client attempted authentication on invalid route: ${request.url}`
+      );
+    }
+
     if (!clientProtocols) {
       authRequest.reject(400);
       throw new Error(
-        `Client with id ${clientId} attempted authentication
+        `Client with id ${authRequest.client.id} attempted authentication
         without specifying any WebSocket subprotocol`
       );
     }
@@ -153,16 +163,27 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     if (supportedProtocols.length === 0) {
       authRequest.reject(400);
       throw new Error(
-        `Client with id ${clientId} attempted authentication
-        with unsupported WebSocket subprotocol(s) ${clientProtocols}`
+        `Client with id ${authRequest.client.id} attempted authentication
+        with unsupported WebSocket subprotocol(s): ${clientProtocols}`
       );
     }
 
-    if (this.config.basicAuth && basicCredentials?.name !== clientId) {
+    if (this.config.basicAuth && !basicCredentials) {
+      authRequest.reject(400);
+      throw new Error(
+        `Client with id ${authRequest.client.id} attempted
+        authentication without supplying BASIC credentials`
+      );
+    }
+
+    if (
+      this.config.basicAuth &&
+      basicCredentials.name !== authRequest.client.id
+    ) {
       authRequest.reject(400);
       throw new Error(
         `Client attempted authentication with mismatching ids
-        ${clientId} in request path and ${basicCredentials.name}
+        ${authRequest.client.id} in request path and ${basicCredentials.name}
         in BASIC credentials`
       );
     }
