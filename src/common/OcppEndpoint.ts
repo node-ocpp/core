@@ -80,6 +80,7 @@ abstract class OcppEndpoint<
     this.httpServer = this.config.https
       ? https.createServer(this.config.httpOptions)
       : http.createServer(this.config.httpOptions);
+    this.httpServer.on('error', this.handleHttpError);
 
     this.sessionService = sessionService;
     this.sessionService.create();
@@ -189,6 +190,10 @@ abstract class OcppEndpoint<
 
     await this.handleDropSession(clientId, reason, force);
     this.onSessionClosed(session);
+  }
+
+  protected handleHttpError(err: Error) {
+    throw new Error('Error occured in HTTP(s) server', { cause: err });
   }
 
   protected async onAuthenticationAttempt(request: OcppAuthenticationRequest) {
