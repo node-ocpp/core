@@ -150,24 +150,35 @@ abstract class OcppEndpoint<
     return this.httpServer.listening;
   }
 
-  public async listen() {
+  public listen() {
     if (this.isListening) {
       throw new Error('Endpoint is already listening for connections');
     }
 
     this.emit('server_starting', this.config);
-    await this.httpServer.listen(this.config.port, this.config.hostname);
-    this.emit('server_listening', this.config);
+    this.httpServer.listen(
+      this.config.port,
+      this.config.hostname,
+      this.config.maxConnections,
+      () => {
+        this.emit('server_listening', this.config);
+      }
+    );
   }
 
-  public async stop() {
+  public stop() {
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
     }
 
     this.emit('server_stopping');
-    await this.httpServer.close();
-    this.emit('server_stopped');
+    this.httpServer.close(err => {
+      if (err) {
+        throw new Error('Error while stopping HTTP(S) server', { cause: err });
+      }
+
+      this.emit('server_stopped');
+    });
   }
 
   public async sendMessage(message: OutboundOcppMessage) {
