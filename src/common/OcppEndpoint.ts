@@ -78,8 +78,8 @@ abstract class OcppEndpoint<
     this.config = merge(this.defaultConfig, config);
 
     this.httpServer = this.config.https
-      ? http.createServer(this.config.httpOptions)
-      : https.createServer(this.config.httpOptions);
+      ? https.createServer(this.config.httpOptions)
+      : http.createServer(this.config.httpOptions);
 
     this.sessionService = sessionService;
     this.sessionService.create();
