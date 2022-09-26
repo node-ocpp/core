@@ -95,11 +95,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     throw new Error('Method not implemented.');
   }
 
-  protected handleHttpUpgrade(
+  protected handleHttpUpgrade = (
     request: HTTPRequest,
     socket: Duplex,
     head: Buffer
-  ) {
+  ) => {
     const basicCredentials = basicAuth(request);
     const basicAuthEnabled = this.config.basicAuth;
     const requestPath = path.parse(new URL(request.url).pathname);
@@ -160,13 +160,13 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     }
 
     this.onAuthenticationAttempt(authRequest);
-  }
+  };
 
-  protected handleWsConnect(
+  protected handleWsConnect = (
     ws: WebSocket,
     request: HTTPRequest,
     client: OcppClient
-  ) {
+  ) => {
     ws.on('message', async (data, isBinary) => {
       if (isBinary) {
         throw new Error(
@@ -264,11 +264,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
       this.onInboundMessage(message);
     });
-  }
+  };
 
-  protected handleWsDisconnect() {
+  protected handleWsDisconnect = () => {
     throw new Error('Method not implemented.');
-  }
+  };
 
   protected async loadSchemas(
     direction: 'inbound' | 'outbound',
