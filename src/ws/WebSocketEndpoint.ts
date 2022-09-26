@@ -62,7 +62,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       outboundMessageHandlers,
       sessionService
     );
-    merge(this.config, this.defaultConfig);
+    merge(this.config, this.defaultEndpointConfig);
 
     this.wsServer = new WSServer(this.config.wsOptions);
     this.httpServer.on('upgrade', this.handleHttpUpgrade);
@@ -77,7 +77,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     } as WSOptions;
   }
 
-  protected get defaultConfig() {
+  protected get defaultEndpointConfig() {
     return {
       protocols: WebSocketProtocolVersions,
       wsOptions: this.defaultWsOptions,
