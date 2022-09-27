@@ -118,7 +118,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
       accept(protocol = this.protocols[0]) {
         super.accept(protocol);
-        acceptRequest(protocol);
+        acceptRequest();
       }
 
       reject(status = 401) {
@@ -127,7 +127,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       }
     })();
 
-    const acceptRequest = (protocol: OcppProtocolVersion) => {
+    const acceptRequest = async () => {
       this.onSessionCreated(new OcppSession(authRequest.client, protocol));
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
