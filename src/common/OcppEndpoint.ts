@@ -219,25 +219,20 @@ abstract class OcppEndpoint<
     await this.authenticationHandlers[0].handle(request);
   }
 
-  protected onConnectionAccepted(request: OcppAuthenticationRequest) {
-    this.onSessionCreated(
-      new OcppSession(new OcppClient(request.client.id), request.protocol)
-    );
-  }
-
-  protected onConnectionRejected(request: OcppAuthenticationRequest) {
-    this.emit('client_rejected', request);
-  }
-
-  protected onSessionCreated(session: OcppSession) {
-    if (this.sessionService.has(session.client.id)) {
+  protected async onAuthenticationSuccess(request: OcppAuthenticationRequest) {
+    if (await this.sessionService.has(request.client.id)) {
       throw new Error(
-        `Client with id ${session.client.id} is already connected`
+        `Client with id ${request.client.id} is already connected`
       );
     }
 
-    this.sessionService.add(session);
+    const session = new OcppSession(request.client, request.protocol);
+    await this.sessionService.add(session);
     this.emit('client_connected', session);
+  }
+
+  protected onAuthenticationFailure(request: OcppAuthenticationRequest) {
+    this.emit('client_rejected', request);
   }
 
   protected onSessionClosed(session: OcppSession) {

@@ -128,16 +128,15 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     })();
 
     const acceptRequest = async () => {
-      this.onSessionCreated(new OcppSession(authRequest.client, protocol));
+      await this.onAuthenticationSuccess(authRequest);
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
         this.wsServer.emit('connection', ws, request, authRequest.client);
-        return true;
       });
     };
 
     const rejectRequest = (status: number) => {
-      this.onConnectionRejected(authRequest);
+      this.onAuthenticationFailure(authRequest);
       socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
       socket.destroy();
     };
@@ -248,7 +247,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         const action =
           rawMessage.type === OcppMessageType.CALL
             ? rawMessage.action
-            : session.pendingOutboundMessage.action;
+            : session.pendingOutboundMessage?.action;
 
         const validation = this.validateSchema(
           'inbound',
