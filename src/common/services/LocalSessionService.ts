@@ -13,12 +13,12 @@ class LocalSessionService implements OcppSessionService {
     delete this.sessions;
   }
 
-  async count(): Promise<number> {
+  async count() {
     return this.sessions.size;
   }
 
   async add(sesion: OcppSession) {
-    if (this.has(sesion.client.id)) {
+    if (await this.has(sesion.client.id)) {
       throw new Error(
         `Session for client with id ${sesion.client.id} already exists`
       );
@@ -36,7 +36,7 @@ class LocalSessionService implements OcppSessionService {
   }
 
   async update(clientId: string, session: OcppSession) {
-    if (!this.has(clientId)) {
+    if (await !this.has(clientId)) {
       throw new Error(`No session for client with id ${clientId} exists`);
     }
 
@@ -44,7 +44,7 @@ class LocalSessionService implements OcppSessionService {
   }
 
   async remove(clientId: string) {
-    if (!this.has(clientId)) {
+    if (await !this.has(clientId)) {
       throw new Error(`No session for client with id ${clientId} exists`);
     }
 
