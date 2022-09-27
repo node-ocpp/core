@@ -125,7 +125,9 @@ abstract class OcppEndpoint<
   protected get defaultHandlers() {
     return {
       authentication: {
-        prefix: <OcppAuthenticationHandler[]>[],
+        prefix: <OcppAuthenticationHandler[]>[
+          new Handlers.SessionExistsHandler(this.sessionService),
+        ],
         suffix: <OcppAuthenticationHandler[]>[],
       },
       inboundMessage: {
