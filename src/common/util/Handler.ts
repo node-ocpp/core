@@ -16,7 +16,10 @@ abstract class AsyncHandler<TRequest> {
   static map<THandler extends AsyncHandler<unknown>>(
     handlers: THandler[]
   ): THandler[] {
-    return handlers.map((handler, i) => (handler.next = handlers[i + 1]));
+    return handlers.map((handler, i) => {
+      handler.next = handlers[i + 1];
+      return handler;
+    });
   }
 }
 
