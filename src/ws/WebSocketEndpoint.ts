@@ -29,6 +29,7 @@ import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
 import merge from 'lodash.merge';
 
 type WebSocketConfig = OcppEndpointConfig & {
+  route?: string;
   protocols?: Readonly<WebSocketProtocolVersion[]>;
   wsOptions?: WSOptions;
   schemaDir?: string;
@@ -70,13 +71,13 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
   protected get defaultWsOptions() {
     return {
-      path: 'ocpp',
       noServer: true,
     } as WSOptions;
   }
 
   protected get defaultEndpointConfig() {
     return {
+      route: 'ocpp',
       protocols: WebSocketProtocolVersions,
       wsOptions: this.defaultWsOptions,
       schemaDir: path.join(__dirname, '../../../var/jsonschema'),
@@ -144,7 +145,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     const removeSlashesRegex = /^\/+|\/+$/g;
     if (
       requestPath.dir.replaceAll(removeSlashesRegex, '') !==
-      this.config.wsOptions.path.replaceAll(removeSlashesRegex, '')
+      this.config.route.replaceAll(removeSlashesRegex, '')
     ) {
       authRequest.reject(400);
       throw new Error(
