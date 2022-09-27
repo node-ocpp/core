@@ -9,11 +9,12 @@ import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
 import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
 import OcppMessageType from '../types/ocpp/OcppMessageType';
 import OcppAction from '../types/ocpp/OcppAction';
-import { InboundOcppMessage, OutboundOcppMessage } from '../common/OcppMessage';
-import OcppSession, {
-  OcppClient,
-  OcppSessionService,
-} from '../common/OcppSession';
+import {
+  InboundOcppMessage,
+  OcppMessagePayload,
+  OutboundOcppMessage,
+} from '../common/OcppMessage';
+import { OcppClient, OcppSessionService } from '../common/OcppSession';
 import {
   InboundOcppMessageHandler,
   OcppAuthenticationHandler,
@@ -212,7 +213,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         client
       );
 
-      let rawMessage;
+      let rawMessage: Array<any>;
       try {
         rawMessage = JSON.parse(data.toString());
       } catch (e) {
@@ -226,33 +227,76 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         });
       }
 
+      const type: number = rawMessage[0];
       if (
-        typeof rawMessage.type !== 'number' ||
-        !Object.values(OcppMessageType).includes(rawMessage.type) ||
-        typeof rawMessage.id !== 'string' ||
-        (rawMessage.type === OcppMessageType.CALL &&
-          typeof rawMessage.action !== 'string')
+        typeof type !== 'number' ||
+        !Object.values(OcppMessageType).includes(type)
       ) {
-        errorResponse.description = 'Invalid message type, id or action';
+        errorResponse.description = 'Missing or invalid message type field';
         this.sendMessage(errorResponse).then(() => {
           throw new Error(
             `Received message from client with id ${client.id}
-            without valid message type, id or action field`
+            with missing or invalid message type field: ${data.toString()}`
           );
         });
       }
 
-      if (this.config.validateSchema) {
-        const session = await this.sessionService.get(client.id);
-        const action =
-          rawMessage.type === OcppMessageType.CALL
-            ? rawMessage.action
-            : session.pendingOutboundMessage?.action;
+      const id: string = rawMessage[1];
+      if (typeof id !== 'string') {
+        errorResponse.description = 'Missing or invalid message id field';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Received message from client with id ${client.id}
+            with missing or invalid message id field: ${data.toString()}`
+          );
+        });
+      }
 
+      const session = await this.sessionService.get(client.id);
+      const action: OcppAction =
+        type === OcppMessageType.CALL
+          ? rawMessage[2]
+          : session.pendingOutboundMessage?.action;
+
+      if (type === OcppMessageType.CALL && typeof action !== 'string') {
+        errorResponse.description = 'Missing or invalid message action field';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Received CALL message from client with id ${client.id}
+            with missing or invalid message action field: ${data.toString()}`
+          );
+        });
+      }
+
+      const errorCode = rawMessage[2];
+      const errorDescription = rawMessage[3];
+      if (
+        type === OcppMessageType.CALLERROR &&
+        (typeof errorCode !== 'string' || typeof errorDescription !== 'string')
+      ) {
+        errorResponse.description = 'Invalid message type, id or action';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Received CALLERROR message from client with id ${client.id} with
+            missing or invalid error code/desctiption values: ${data.toString()}`
+          );
+        });
+      }
+
+      const payload: OcppMessagePayload =
+        type === OcppMessageType.CALL
+          ? rawMessage[3]
+          : type === OcppMessageType.CALLRESULT
+          ? rawMessage[2]
+          : type === OcppMessageType.CALLERROR
+          ? rawMessage[4]
+          : null;
+
+      if (this.config.validateSchema) {
         const validation = this.validateSchema(
           'inbound',
           action,
-          rawMessage,
+          data.toString(),
           session.protocol
         );
 
@@ -262,31 +306,22 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       }
 
       let message: InboundOcppMessage;
-      switch (rawMessage.type) {
+      switch (type) {
         case OcppMessageType.CALL:
-          message = new InboundOcppCall(
-            rawMessage.id,
-            rawMessage.action,
-            rawMessage.data,
-            client
-          );
+          message = new InboundOcppCall(id, action, payload, client);
           break;
 
         case OcppMessageType.CALLRESULT:
-          message = new InboundOcppCallResult(
-            rawMessage.id,
-            client,
-            rawMessage.data
-          );
+          message = new InboundOcppCallResult(id, client, payload);
           break;
 
         case OcppMessageType.CALLERROR:
           message = new InboundOcppCallError(
-            rawMessage.id,
+            id,
             client,
-            rawMessage.code,
-            rawMessage.description,
-            rawMessage.details
+            errorCode,
+            errorDescription,
+            payload
           );
           break;
       }
