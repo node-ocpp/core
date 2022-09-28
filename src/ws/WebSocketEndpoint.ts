@@ -31,16 +31,10 @@ import merge from 'lodash.merge';
 
 type WebSocketConfig = OcppEndpointConfig & {
   route?: string;
-  protocols?: Readonly<WebSocketProtocolVersion[]>;
-  wsOptions?: WSOptions;
-  schemaDir?: string;
-  validateSchema?: boolean;
+  protocols?: Readonly<OcppProtocolVersion[]>;
   basicAuth?: boolean;
   certificateAuth?: boolean;
 };
-
-const WebSocketProtocolVersions = ['ocpp1.6', 'ocpp2.0', 'ocpp2.0.1'] as const;
-type WebSocketProtocolVersion = typeof WebSocketProtocolVersions[number];
 
 class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected wsServer: WSServer;
@@ -79,10 +73,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected get defaultEndpointConfig() {
     return {
       route: 'ocpp',
-      protocols: WebSocketProtocolVersions,
-      wsOptions: this.defaultWsOptions,
-      schemaDir: path.join(__dirname, '../../../var/jsonschema'),
-      validateSchema: true,
+      protocols: OcppProtocolVersions,
       basicAuth: true,
       certificateAuth: true,
     } as WebSocketConfig;
@@ -121,7 +112,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       request.headers['sec-websocket-protocol']?.split(',');
     const supportedProtocols = this.config.protocols.filter(protocol =>
       clientProtocols?.includes(protocol)
-    ) as WebSocketProtocolVersion[];
+    ) as OcppProtocolVersion[];
 
     const authRequest = new (class extends OcppAuthenticationRequest {
       client = new OcppClient(requestPath.base);
@@ -370,7 +361,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected async loadSchemas(
     direction: 'inbound' | 'outbound',
     action: OcppAction,
-    protocolVersion?: OcppProtocolVersion
+    protocol: OcppProtocolVersion
   ) {
     throw new Error('Method not implemented.');
   }
@@ -386,4 +377,4 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 }
 
 export default WebSocketEndpoint;
-export { WebSocketConfig, WebSocketProtocolVersion, WebSocketProtocolVersions };
+export { WebSocketConfig };
