@@ -313,22 +313,22 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       switch (type) {
         case OcppMessageType.CALL:
           message = new InboundOcppCall(
+            client,
             id,
             action,
             payload,
-            client,
             responseHandler
           );
           break;
 
         case OcppMessageType.CALLRESULT:
-          message = new InboundOcppCallResult(id, client, payload);
+          message = new InboundOcppCallResult(client, id, payload);
           break;
 
         case OcppMessageType.CALLERROR:
           message = new InboundOcppCallError(
-            id,
             client,
+            id,
             errorCode,
             errorDescription,
             payload

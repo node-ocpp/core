@@ -30,7 +30,7 @@ abstract class OcppMessage {
 abstract class InboundOcppMessage extends OcppMessage {
   readonly sender: OcppClient;
 
-  constructor(id: string, sender: OcppClient) {
+  constructor(sender: OcppClient, id: string) {
     super(id);
     this.sender = sender;
     this._timestamp = new Date();
@@ -41,7 +41,7 @@ abstract class OutboundOcppMessage extends OcppMessage {
   recipient: OcppClient;
   private _isSent: boolean;
 
-  constructor(id: string, recipient: OcppClient) {
+  constructor(recipient: OcppClient, id: string) {
     super(id);
     this.recipient = recipient;
     this._isSent = false;
@@ -64,11 +64,11 @@ abstract class RespondableOcppMessage<
   private _response?: OutboundOcppMessage;
 
   constructor(
-    id: string,
     sender: OcppClient,
+    id: string,
     responseHandler?: ResponseHandler<TResponse>
   ) {
-    super(id, sender);
+    super(sender, id);
     this._responseHandler = responseHandler || null;
     this._response = null;
   }
@@ -102,11 +102,11 @@ abstract class ResultingOcppMessage<
   private _response?: TResponse;
 
   constructor(
+    recipient: OcppClient,
     id: string,
-    recipient?: OcppClient,
     responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
-    super(id, recipient);
+    super(recipient, id);
     this._responseHandler = responseHandler || null;
   }
 

@@ -33,13 +33,13 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
       message.id !== session.pendingOutboundMessage.id
     ) {
       throw new OutboundOcppCallError(
+        message.sender,
         message.id,
         'ProtocolError',
         `Received ${messageType} message with id ${message.id} from client with
         id ${message.sender.id} which does not match pending outbound CALL
         message with id ${session.pendingOutboundMessage.id}`,
-        message,
-        message.sender
+        message
       );
     }
 
@@ -52,12 +52,12 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
       !(message instanceof InboundOcppCall)
     ) {
       throw new OutboundOcppCallError(
+        message.sender,
         message.id,
         'ProtocolError',
         `Received ${messageType} message from client with id
         ${message.sender.id} while there is no pending outbound CALL message`,
-        message,
-        message.sender
+        message
       );
     }
 
@@ -67,12 +67,12 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
     */
     if (session.pendingInboundMessage && message instanceof InboundOcppCall) {
       throw new OutboundOcppCallError(
+        message.sender,
         message.id,
         'ProtocolError',
         `Received CALL message from client with id ${message.sender.id}
         while there is already a pending inbound CALL message`,
-        message,
-        message.sender
+        message
       );
     }
 

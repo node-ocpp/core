@@ -38,13 +38,13 @@ class InboundOcppCallError
   details: OcppMessagePayload;
 
   constructor(
-    id: string,
     sender: OcppClient,
+    id: string,
     code: RPCError = 'GenericError',
     description = '',
     details: OcppMessagePayload = {}
   ) {
-    super(id, sender);
+    super(sender, id);
     this.code = code;
     this.description = description;
     this.details = details;
@@ -61,13 +61,13 @@ class OutboundOcppCallError
   details: OcppMessagePayload;
 
   constructor(
+    recipient: OcppClient,
     id: string,
     code: RPCError = 'GenericError',
     description = '',
-    details: OcppMessagePayload = {},
-    recipient?: OcppClient
+    details: OcppMessagePayload = {}
   ) {
-    super(id, recipient);
+    super(recipient, id);
     this.code = code;
     this.description = description;
     this.details = details;

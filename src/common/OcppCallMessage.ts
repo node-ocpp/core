@@ -35,13 +35,13 @@ class InboundOcppCall<
   data: TPayload;
 
   constructor(
+    sender: OcppClient,
     id: string,
     action: TAction,
     data: TPayload,
-    sender: OcppClient,
     responseHandler?: ResponseHandler<TResponse>
   ) {
-    super(id, sender, responseHandler);
+    super(sender, id, responseHandler);
     this.action = action;
     this.data = data;
   }
@@ -61,13 +61,13 @@ class OutboundOcppCall<
   data: TPayload;
 
   constructor(
+    recipient: OcppClient,
     id: string,
     action: TAction,
     data: TPayload,
-    recipient?: OcppClient,
     responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
-    super(id, recipient, responseHandler);
+    super(recipient, id, responseHandler);
     this.action = action;
     this.data = data;
   }
