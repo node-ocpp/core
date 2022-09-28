@@ -3,30 +3,37 @@ import { Duplex } from 'stream';
 import { promises as fsPromises } from 'fs';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
+import { validate as validateJsonSchema } from 'jsonschema';
+import basicAuth from 'basic-auth';
+import merge from 'lodash.merge';
 
 import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
-import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
+import { OcppClient, OcppSessionService } from '../common/OcppSession';
+import OcppProtocolVersion, {
+  OcppProtocolVersions,
+} from '../types/ocpp/OcppProtocolVersion';
 import OcppMessageType from '../types/ocpp/OcppMessageType';
 import OcppAction from '../types/ocpp/OcppAction';
+import { InboundOcppCall } from '../common/OcppCallMessage';
+import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
+
 import {
   InboundOcppMessage,
   OcppMessagePayload,
   OutboundOcppMessage,
 } from '../common/OcppMessage';
-import { OcppClient, OcppSessionService } from '../common/OcppSession';
+
 import {
   InboundOcppMessageHandler,
   OcppAuthenticationHandler,
   OcppAuthenticationRequest,
   OutboundOcppMessageHandler,
 } from '../common/OcppHandlers';
+
 import {
   InboundOcppCallError,
   OutboundOcppCallError,
 } from '../common/OcppCallErrorMessage';
-import { InboundOcppCall } from '../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
-import merge from 'lodash.merge';
 
 type WebSocketConfig = OcppEndpointConfig & {
   route?: string;
@@ -47,9 +54,8 @@ type WebSocketConfig = OcppEndpointConfig & {
 
 class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected wsServer: WSServer;
-
-  protected inboundSchemas: Map<OcppAction, OcppAction>;
-  protected outboundSchemas: Map<OcppAction, OcppAction>;
+  protected requestSchemas: Map<OcppAction, Record<string, any>>;
+  protected responseSchemas: Map<OcppAction, Record<string, any>>;
 
   constructor(
     config: WebSocketConfig,
@@ -71,12 +77,9 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.httpServer.on('upgrade', this.handleHttpUpgrade);
     this.wsServer.on('connection', this.handleWsConnect);
     this.wsServer.on('close', this.handleWsDisconnect);
-  }
 
-  protected get defaultWsOptions() {
-    return {
-      noServer: true,
-    } as WSOptions;
+    this.requestSchemas = new Map();
+    this.responseSchemas = new Map();
   }
 
   protected get defaultEndpointConfig() {
@@ -331,16 +334,47 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
           ? rawMessage[4]
           : null;
 
-      if (this.config.validateSchema) {
-        const validation = this.validateSchema(
-          'inbound',
-          action,
-          data.toString(),
-          session.protocol
-        );
+      if (
+        this.config.schemaValidation &&
+        (type === OcppMessageType.CALL || type === OcppMessageType.CALLRESULT)
+      ) {
+        let schema: Record<string, any>;
+        let schemaType: 'request' | 'response';
+        let schemaMap: Map<OcppAction, Record<string, any>>;
 
-        if (!validation) {
-          return; // to be implemented
+        switch (type) {
+          case OcppMessageType.CALL:
+            schemaType = 'request';
+            schemaMap = this.requestSchemas;
+            break;
+
+          case OcppMessageType.CALLRESULT:
+            schemaType = 'response';
+            schemaMap = this.responseSchemas;
+            break;
+        }
+
+        if (!schemaMap.has(action)) {
+          schema = await this.loadJsonSchema(
+            schemaType,
+            action,
+            session.protocol
+          );
+
+          schemaMap.set(action, schema);
+        } else {
+          schema = schemaMap.get(action);
+        }
+
+        const validation = validateJsonSchema(payload, schema);
+
+        if (!validation.valid) {
+          throw new Error(
+            `Validation of JSON schema against payload of
+            ${type === OcppMessageType.CALL ? 'CALL' : 'CALLRESULT'}
+            message from client with id ${client.id} failed`,
+            { cause: validation.errors as any }
+          );
         }
       }
 

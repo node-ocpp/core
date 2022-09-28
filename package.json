@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=11.14.0"
+  },
   "scripts": {
     "test": "npm run test",
     "lint": "npx gts lint",
@@ -22,6 +25,7 @@
   "license": "ISC",
   "dependencies": {
     "basic-auth": "^2.0.1",
+    "jsonschema": "^1.4.1",
     "lodash.merge": "^4.6.2",
     "ws": "^8.8.1"
   },
