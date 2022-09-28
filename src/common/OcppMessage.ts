@@ -1,9 +1,6 @@
 import OcppMessageType from '../types/ocpp/OcppMessageType';
 import { OcppClient } from './OcppSession';
-import {
-  InboundOcppMessageHandler,
-  OutboundOcppMessageHandler,
-} from './OcppHandlers';
+import { InboundOcppMessageHandler, ResponseHandler } from './OcppHandlers';
 
 type OcppMessageValue =
   | string
@@ -63,13 +60,13 @@ abstract class OutboundOcppMessage extends OcppMessage {
 abstract class RespondableOcppMessage<
   TResponse extends OutboundOcppMessage
 > extends InboundOcppMessage {
-  private _responseHandler?: OutboundOcppMessageHandler<TResponse>;
+  private _responseHandler?: ResponseHandler<TResponse>;
   private _response?: OutboundOcppMessage;
 
   constructor(
     id: string,
     sender: OcppClient,
-    responseHandler?: OutboundOcppMessageHandler<TResponse>
+    responseHandler?: ResponseHandler<TResponse>
   ) {
     super(id, sender);
     this._responseHandler = responseHandler || null;
@@ -81,11 +78,11 @@ abstract class RespondableOcppMessage<
       throw new Error('respond() was called but responseHandler is not set');
     }
 
-    await this._responseHandler.handle(response);
+    await this._responseHandler(response);
     this._response = response;
   }
 
-  set responseHandler(handler: OutboundOcppMessageHandler<TResponse>) {
+  set responseHandler(handler: ResponseHandler<TResponse>) {
     this._responseHandler = handler;
   }
 

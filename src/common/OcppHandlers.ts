@@ -74,10 +74,15 @@ abstract class OutboundOcppMessageHandler<
   TMessage extends OutboundOcppMessage = OutboundOcppMessage
 > extends OcppMessageHandler<TMessage> {}
 
+type ResponseHandler<TResponse extends OutboundOcppMessage> = (
+  response: TResponse
+) => Promise<void>;
+
 export {
   AsyncHandler,
   OcppAuthenticationHandler,
   OcppAuthenticationRequest,
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
+  ResponseHandler,
 };
