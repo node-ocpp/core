@@ -20,18 +20,18 @@ class SimpleAuthenticationHandler extends OcppAuthenticationHandler {
 class GenericMessageHandler extends InboundOcppMessageHandler {
   async handle(message: InboundOcppMessage) {
     console.dir(message);
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 
 class BootNotificationHandler extends InboundOcppMessageHandler {
   async handle(message: BootNotificationRequest) {
     if (message.action !== 'BootNotification') {
-      return super.handle(message);
+      return await super.handle(message);
     }
 
     message.respond(
-      new OutboundOcppCallResult(message.id, message.sender, {
+      new OutboundOcppCallResult(message.sender, message.id, {
         currentTime: new Date(),
         interval: 30,
         status: 'Accepted',
@@ -40,9 +40,9 @@ class BootNotificationHandler extends InboundOcppMessageHandler {
   }
 }
 const wsEndpoint = new WebSocketEndpoint(
-  { port: 8080, hostname: 'localhost' },
+  { port: 8080, hostname: 'localhost', basicAuth: false },
   [new SimpleAuthenticationHandler()],
-  [(new GenericMessageHandler(), new BootNotificationHandler())]
+  [new GenericMessageHandler(), new BootNotificationHandler()]
 );
 
 wsEndpoint.on('server_listening', config => {
