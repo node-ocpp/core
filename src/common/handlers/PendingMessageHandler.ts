@@ -24,12 +24,12 @@ class InboundPendingMessageHandler extends InboundOcppMessageHandler {
       message.id === session.pendingOutboundMessage.id
     ) {
       session.pendingOutboundMessage = null;
-      this.sessionService.update(session.client.id, session);
+      await this.sessionService.update(session.client.id, session);
     }
 
     if (message instanceof InboundOcppCall && !session.pendingInboundMessage) {
       session.pendingInboundMessage = message;
-      this.sessionService.update(session.client.id, session);
+      await this.sessionService.update(session.client.id, session);
     }
 
     return super.handle(message);
@@ -54,7 +54,7 @@ class OutboundPendingMessageHandler extends OutboundOcppMessageHandler {
       message.id === session.pendingInboundMessage.id
     ) {
       session.pendingInboundMessage = null;
-      this.sessionService.update(session.client.id, session);
+      await this.sessionService.update(session.client.id, session);
     }
 
     if (
@@ -62,7 +62,7 @@ class OutboundPendingMessageHandler extends OutboundOcppMessageHandler {
       !session.pendingOutboundMessage
     ) {
       session.pendingOutboundMessage = message;
-      this.sessionService.update(session.client.id, session);
+      await this.sessionService.update(session.client.id, session);
     }
 
     return super.handle(message);
