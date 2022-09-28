@@ -305,10 +305,20 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         }
       }
 
+      const responseHandler = async (response: OutboundOcppMessage) => {
+        await this.sendMessage(response);
+      };
+
       let message: InboundOcppMessage;
       switch (type) {
         case OcppMessageType.CALL:
-          message = new InboundOcppCall(id, action, payload, client);
+          message = new InboundOcppCall(
+            id,
+            action,
+            payload,
+            client,
+            responseHandler
+          );
           break;
 
         case OcppMessageType.CALLRESULT:
