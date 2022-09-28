@@ -1,7 +1,6 @@
-/* eslint-disable node/no-unpublished-require */
-import basicAuth from 'basic-auth';
 import path from 'path';
 import { Duplex } from 'stream';
+import { promises as fsPromises } from 'fs';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
 
@@ -384,21 +383,47 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     throw new Error('Method not implemented.');
   };
 
-  protected async loadSchemas(
-    direction: 'inbound' | 'outbound',
+  protected async loadJsonSchema(
+    type: 'request' | 'response',
     action: OcppAction,
     protocol: OcppProtocolVersion
   ) {
-    throw new Error('Method not implemented.');
-  }
+    let schemaDir: string;
+    this.config.schemaDir.forEach((dir, protocols) => {
+      if (protocols.includes(protocol)) {
+        schemaDir = dir;
+      }
+    });
 
-  protected async validateSchema(
-    direction: 'inbound' | 'outbound',
-    action: OcppAction,
-    message: string,
-    protocolVersion?: OcppProtocolVersion
-  ) {
-    throw new Error('Method not implemented.');
+    if (!schemaDir) {
+      throw new Error(
+        `Missing schema directory for protocol
+        ${protocol} in WebSocket endpoint config`
+      );
+    }
+
+    const schemaPath = this.config.schemaPathCallback(schemaDir, type, action);
+
+    let rawSchema: string;
+    try {
+      rawSchema = await (await fsPromises.readFile(schemaPath)).toString();
+    } catch (err) {
+      throw new Error(
+        `Error while attempting to read JSON schema from file: ${schemaPath}`,
+        { cause: err as any }
+      );
+    }
+
+    let jsonSchema: Record<string, any>;
+    try {
+      jsonSchema = JSON.parse(rawSchema);
+    } catch (err) {
+      throw new Error('Error while attempting to parse JSON schema', {
+        cause: err as any,
+      });
+    }
+
+    return jsonSchema;
   }
 }
 
