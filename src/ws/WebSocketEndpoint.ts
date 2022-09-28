@@ -240,6 +240,16 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         });
       }
 
+      if (!Array.isArray(rawMessage)) {
+        errorResponse.description = 'Message is not an array';
+        this.sendMessage(errorResponse).then(() => {
+          throw new Error(
+            `Received message from client with
+            id ${client.id} which is not an array`
+          );
+        });
+      }
+
       const type: number = rawMessage[0];
       if (
         typeof type !== 'number' ||
