@@ -88,6 +88,18 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     } as WebSocketConfig;
   }
 
+  protected handleHasSession(clientId: string) {
+    let hasSession = false;
+
+    this.wsServer.clients.forEach(client => {
+      if (path.parse(client.url).base === clientId) {
+        hasSession = client.readyState === WebSocket.OPEN;
+      }
+    });
+
+    return hasSession;
+  }
+
   protected async handleSendMessage(message: OutboundOcppMessage) {
     throw new Error('Method not implemented.');
   }
@@ -132,6 +144,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       await this.onAuthenticationSuccess(authRequest);
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
+        (ws as any)._url = request.url;
         this.wsServer.emit('connection', ws, request, authRequest.client);
       });
     };

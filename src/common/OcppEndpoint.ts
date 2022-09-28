@@ -59,6 +59,7 @@ abstract class OcppEndpoint<
   protected inboundMessageHandlers: InboundOcppMessageHandler[];
   protected outboundMessageHandlers: OutboundOcppMessageHandler[];
 
+  protected abstract handleHasSession(clientId: string): boolean;
   protected abstract handleDropSession(
     clientId: string,
     reason?: number,
@@ -187,6 +188,10 @@ abstract class OcppEndpoint<
     });
   }
 
+  public hasSession(clientId: string) {
+    return this.handleHasSession(clientId);
+  }
+
   public async sendMessage(message: OutboundOcppMessage) {
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
@@ -226,7 +231,20 @@ abstract class OcppEndpoint<
       );
     }
 
-    const session = new OcppSession(request.client, request.protocol);
+    const isActiveHandler = () => {
+      return this.hasSession(request.client.id);
+    };
+
+    const dropHandler = () => {
+      this.dropSession(request.client.id);
+    };
+
+    const session = new OcppSession(
+      request.client,
+      request.protocol,
+      isActiveHandler,
+      dropHandler
+    );
     await this.sessionService.add(session);
     this.emit('client_connected', session);
   }
