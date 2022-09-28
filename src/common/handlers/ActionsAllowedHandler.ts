@@ -21,11 +21,11 @@ class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
       !this.config.actionsAllowed.includes(message.action)
     ) {
       throw new OutboundOcppCallError(
+        message.sender,
         message.id,
         'NotImplemented',
         `Action ${message.action} is not supported`,
-        null,
-        message.sender
+        null
       );
     }
 
