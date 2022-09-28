@@ -34,6 +34,16 @@ type WebSocketConfig = OcppEndpointConfig & {
   protocols?: Readonly<OcppProtocolVersion[]>;
   basicAuth?: boolean;
   certificateAuth?: boolean;
+  schemaValidation?: boolean;
+  schemaDir?: Map<OcppProtocolVersion[], string>;
+
+  schemaPathCallback?: (
+    dir: string,
+    type: 'request' | 'response',
+    action: OcppAction
+  ) => string;
+
+  wsOptions?: WSOptions;
 };
 
 class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
@@ -71,11 +81,27 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   }
 
   protected get defaultEndpointConfig() {
+    const schemaBase = path.join(__dirname, '../../../var/jsonschema');
+
     return {
       route: 'ocpp',
       protocols: OcppProtocolVersions,
       basicAuth: true,
       certificateAuth: true,
+      schemaValidation: true,
+
+      // OCPP <= 1.6    /var/jsonschema/ocpp1.6
+      // OCPP >= 2.0    /var/jsonschema/ocpp2.0.1
+      schemaDir: new Map([
+        [['ocpp1.2', 'ocpp1.5', 'ocpp1.6'], path.join(schemaBase, 'ocpp1.6')],
+        [['ocpp2.0', 'ocpp2.0.1'], path.join(schemaBase, 'ocpp2.0.1')],
+      ]),
+
+      // e.g. /var/jsonschema/ocpp1.6/AuthorizeRequest.json
+      schemaPathCallback: (dir, type, action) =>
+        path.join(dir, `${action}R${type.substring(1)}.json`),
+
+      wsOptions: { noServer: true },
     } as WebSocketConfig;
   }
 
