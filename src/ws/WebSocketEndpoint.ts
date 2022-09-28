@@ -142,10 +142,10 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       socket.destroy();
     };
 
-    const removeSlashesRegex = /^\/+|\/+$/g;
+    const trimSlashesRegex = /^\/+|\/+$/g;
     if (
-      requestPath.dir.replaceAll(removeSlashesRegex, '') !==
-      this.config.route.replaceAll(removeSlashesRegex, '')
+      requestPath.dir.replaceAll(trimSlashesRegex, '') !==
+      this.config.route.replaceAll(trimSlashesRegex, '')
     ) {
       authRequest.reject(400);
       throw new Error(
