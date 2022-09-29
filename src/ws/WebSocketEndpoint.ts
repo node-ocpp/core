@@ -103,13 +103,13 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       const ws = this.getSocket(message.recipient.id);
       const session = await this.sessionService.get(message.recipient.id);
 
-      const messageArray: any[] = [message.type, message.id];
+      const messageArr: any[] = [message.type, message.id];
       if (message instanceof OutboundOcppCall) {
-        messageArray.push(message.action, message.data);
+        messageArr.push(message.action, message.data);
       } else if (message instanceof OutboundOcppCallResult) {
-        messageArray.push(message.data);
+        messageArr.push(message.data);
       } else if (message instanceof OutboundOcppCallError) {
-        messageArray.push(message.code, message.description, message.details);
+        messageArr.push(message.code, message.description, message.details);
       }
 
       if (
@@ -142,7 +142,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         }
       }
 
-      ws.send(JSON.stringify(messageArray));
+      ws.send(JSON.stringify(messageArr));
     };
 
     return new (class extends OutboundOcppMessageHandler {
