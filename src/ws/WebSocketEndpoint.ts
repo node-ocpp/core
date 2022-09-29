@@ -10,13 +10,22 @@ import merge from 'lodash.merge';
 
 import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
 import { OcppClient, OcppSessionService } from '../common/OcppSession';
+import { InboundOcppCall, OutboundOcppCall } from '../common/OcppCallMessage';
+import {
+  InboundOcppCallResult,
+  OutboundOcppCallResult,
+} from '../common/OcppCallResultMessage';
+
+import {
+  InboundOcppCallError,
+  OutboundOcppCallError,
+} from '../common/OcppCallErrorMessage';
+
 import OcppProtocolVersion, {
   OcppProtocolVersions,
 } from '../types/ocpp/OcppProtocolVersion';
 import OcppMessageType from '../types/ocpp/OcppMessageType';
 import OcppAction from '../types/ocpp/OcppAction';
-import { InboundOcppCall } from '../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../common/OcppCallResultMessage';
 
 import {
   InboundOcppMessage,
@@ -30,11 +39,6 @@ import {
   OcppAuthenticationRequest,
   OutboundOcppMessageHandler,
 } from '../common/OcppHandlers';
-
-import {
-  InboundOcppCallError,
-  OutboundOcppCallError,
-} from '../common/OcppCallErrorMessage';
 
 type WebSocketConfig = OcppEndpointConfig & {
   wsOptions?: WSOptions;
@@ -65,63 +69,69 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       outboundMessageHandlers,
       sessionService
     );
-    this._config = merge(this.defaultEndpointConfig, this.config);
-
     this.wsServer = new WSServer(this.config.wsOptions);
-    this.httpServer.on('upgrade', this.handleHttpUpgrade);
-    this.wsServer.on('connection', this.handleWsConnect);
-    this.wsServer.on('close', this.handleWsDisconnect);
+    this.httpServer.on('upgrade', this.onHttpUpgrade);
+    this.wsServer.on('connection', this.onWsConnected);
 
     this.requestSchemas = new Map();
     this.responseSchemas = new Map();
   }
 
-  protected get defaultEndpointConfig() {
+  protected get defaultConfig() {
     const schemaBase = path.join(__dirname, '../../../var/jsonschema');
 
-    return {
+    const config: WebSocketConfig = {
+      wsOptions: { noServer: true },
       route: 'ocpp',
       protocols: OcppProtocolVersions,
       basicAuth: true,
       certificateAuth: true,
       schemaValidation: true,
-
-      // OCPP <= 1.6    /var/jsonschema/ocpp1.6
-      // OCPP >= 2.0    /var/jsonschema/ocpp2.0.1
       schemaDir: new Map([
+        // OCPP <= 1.6    /var/jsonschema/ocpp1.6
         [['ocpp1.2', 'ocpp1.5', 'ocpp1.6'], path.join(schemaBase, 'ocpp1.6')],
+        // OCPP >= 2.0    /var/jsonschema/ocpp2.0.1
         [['ocpp2.0', 'ocpp2.0.1'], path.join(schemaBase, 'ocpp2.0.1')],
       ]),
+    };
 
-      // e.g. /var/jsonschema/ocpp1.6/AuthorizeRequest.json
-      schemaPathCallback: (dir, type, action) =>
-        path.join(dir, `${action}R${type.substring(1)}.json`),
+    return merge(super.defaultConfig, config);
+  }
 
       wsOptions: { noServer: true },
     } as WebSocketConfig;
   }
 
-  protected handleHasSession(clientId: string) {
-    let hasSession = false;
 
-    this.wsServer.clients.forEach(client => {
-      if (path.parse(client.url).base === clientId) {
-        hasSession = client.readyState === WebSocket.OPEN;
+  public async dropSession(
+    clientId: string,
+    force = false,
+    code = 1000,
+    data?: string | Buffer
+  ) {
+    const ws = this.getSocket(clientId);
+
+    if (force) {
+      ws.terminate();
+    } else {
+      ws.close(code, data);
+    }
+
+    this.onSessionClosed(clientId);
+  }
+
+  protected getSocket(clientId: string) {
+    let socket: WebSocket;
+    this.wsServer.clients.forEach(ws => {
+      if (path.parse(ws.url).base === clientId) {
+        socket = ws;
       }
     });
 
-    return hasSession;
+    return socket;
   }
 
-  protected async handleSendMessage(message: OutboundOcppMessage) {
-    throw new Error('Method not implemented.');
-  }
-
-  protected async handleDropSession(clientId: string) {
-    throw new Error('Method not implemented.');
-  }
-
-  protected handleHttpUpgrade = (
+  protected onHttpUpgrade = (
     request: HTTPRequest,
     socket: Duplex,
     head: Buffer
@@ -132,6 +142,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
     const clientProtocols =
       request.headers['sec-websocket-protocol']?.split(',');
+
     const supportedProtocols = this.config.protocols.filter(protocol =>
       clientProtocols?.includes(protocol)
     ) as OcppProtocolVersion[];
@@ -139,7 +150,6 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     const authRequest = new (class extends OcppAuthenticationRequest {
       client = new OcppClient(requestPath.base);
       protocols = supportedProtocols;
-
       password = basicAuthEnabled ? basicCredentials?.pass : undefined;
 
       accept(protocol = this.protocols[0]) {
@@ -158,6 +168,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
         (ws as any)._url = request.url;
+        ws.on('close', this.onWsDisconnected);
         this.wsServer.emit('connection', ws, request, authRequest.client);
       });
     };
@@ -218,7 +229,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.onAuthenticationAttempt(authRequest);
   };
 
-  protected handleWsConnect = (
+  protected onWsConnected = (
     ws: WebSocket,
     request: HTTPRequest,
     client: OcppClient
@@ -231,9 +242,9 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
       }
 
-      let msg;
+      let messageProperties;
       try {
-        msg = this.parseMessage(data.toString());
+        messageProperties = this.parseMessage(data.toString());
       } catch (err: any) {
         const errorResponse = new OutboundOcppCallError(
           client,
@@ -260,25 +271,25 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         errorCode,
         errorDescription,
         errorDetails,
-      } = msg;
+      } = messageProperties;
 
       if (
         this.config.schemaValidation &&
         (type === OcppMessageType.CALL || type === OcppMessageType.CALLRESULT)
       ) {
-        const validation = await this.validateSchema(
+        const messageValidation = await this.validateSchema(
           type,
           action,
           payload,
           ws.protocol as OcppProtocolVersion
         );
 
-        if (!validation?.valid) {
+        if (!messageValidation?.valid) {
           throw new Error(
             `Validation of JSON schema against payload of
             ${type === OcppMessageType.CALL ? 'CALL' : 'CALLRESULT'}
             message from client with id ${client.id} failed`,
-            { cause: validation.errors as any }
+            { cause: messageValidation.errors as any }
           );
         }
       }
@@ -318,8 +329,12 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     });
   };
 
-  protected handleWsDisconnect = () => {
-    throw new Error('Method not implemented.');
+  protected onWsDisconnected = (
+    ws: WebSocket,
+    code: number,
+    reason: Buffer
+  ) => {
+    this.onSessionClosed(path.parse(ws.url).base);
   };
 
   protected parseMessage(rawMessage: string) {
@@ -435,7 +450,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       );
     }
 
-    const schemaPath = this.config.schemaPathCallback(schemaDir, type, action);
+    const schemaPath = path.join(schemaDir, `${action}R${type.slice(1)}.json`);
 
     let rawSchema: string;
     try {

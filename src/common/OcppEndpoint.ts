@@ -1,7 +1,11 @@
 // eslint-disable-next-line node/no-unpublished-import
 import TypedEmitter from 'typed-emitter';
-// eslint-disable-next-line prettier/prettier
-import https, { Server as HTTPSServer, ServerOptions as HTTPSOptions } from 'https';
+
+import https, {
+  Server as HTTPSServer,
+  ServerOptions as HTTPSOptions,
+} from 'https';
+
 import http, { Server as HTTPServer, ServerOptions as HTTPOptions } from 'http';
 import { EventEmitter } from 'events';
 import merge from 'lodash.merge';
@@ -12,10 +16,12 @@ import LocalSessionService from './services/LocalSessionService';
 import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
 import { OutboundOcppCallError } from './OcppCallErrorMessage';
 import OcppAction, { OcppActions } from '../types/ocpp/OcppAction';
+import * as Handlers from './handlers';
+
 import OcppProtocolVersion, {
   OcppProtocolVersions,
 } from '../types/ocpp/OcppProtocolVersion';
-import * as Handlers from './handlers';
+
 import {
   AsyncHandler,
   OcppAuthenticationHandler,
@@ -41,9 +47,9 @@ type OcppEndpointEvents = {
   server_listening: (config: OcppEndpointConfig) => void;
   server_stopping: () => void;
   server_stopped: () => void;
-  client_connected: (client: OcppSession) => void;
+  client_connected: (client: OcppClient) => void;
   client_rejected: (request: OcppAuthenticationRequest) => void;
-  client_disconnected: (client: OcppSession) => void;
+  client_disconnected: (client: OcppClient) => void;
   message_sent: (message: OutboundOcppMessage) => void;
   message_received: (message: InboundOcppMessage) => void;
 };
@@ -59,15 +65,9 @@ abstract class OcppEndpoint<
   protected inboundMessageHandlers: InboundOcppMessageHandler[];
   protected outboundMessageHandlers: OutboundOcppMessageHandler[];
 
-  protected abstract handleHasSession(clientId: string): boolean;
-  protected abstract handleDropSession(
-    clientId: string,
-    reason?: number,
-    force?: boolean
-  ): void;
-  protected abstract handleSendMessage(
-    message: OutboundOcppMessage
-  ): Promise<void>;
+  protected abstract hasSession(clientId: string): boolean;
+  protected abstract dropSession(clientId: string): void;
+  protected abstract get sendMessageHandler(): OutboundOcppMessageHandler;
 
   constructor(
     config: TConfig,
@@ -82,7 +82,7 @@ abstract class OcppEndpoint<
     this.httpServer = this.config.https
       ? https.createServer(this.config.httpOptions)
       : http.createServer(this.config.httpOptions);
-    this.httpServer.on('error', this.handleHttpError);
+    this.httpServer.on('error', this.onHttpError);
 
     this.sessionService = sessionService;
     this.sessionService.create();
@@ -144,7 +144,7 @@ abstract class OcppEndpoint<
           new Handlers.OutboundActionsAllowedHandler(this.config),
           new Handlers.OutboundPendingMessageHandler(this.sessionService),
         ],
-        suffix: <OutboundOcppMessageHandler[]>[],
+        suffix: <OutboundOcppMessageHandler[]>[this.sendMessageHandler],
       },
     };
   }
@@ -188,35 +188,20 @@ abstract class OcppEndpoint<
     });
   }
 
-  public hasSession(clientId: string) {
-    return this.handleHasSession(clientId);
-  }
-
-  public async sendMessage(message: OutboundOcppMessage) {
+  protected async sendMessage(message: OutboundOcppMessage) {
     if (!this.isListening) {
       throw new Error('Endpoint is currently not listening for connections');
-    } else if (!this.sessionService.has(message.recipient.id)) {
+    } else if (!this.hasSession(message.recipient.id)) {
       throw new Error(
         `Client with id ${message.recipient.id} is currently not connected`
       );
     }
 
     await this.outboundMessageHandlers[0].handle(message);
-    await this.handleSendMessage(message);
     this.emit('message_sent', message);
   }
 
-  public async dropSession(clientId: string, reason?: number, force = false) {
-    const session = await this.sessionService.get(clientId);
-    if (session === null) {
-      throw new Error(`Client with id ${clientId} is currently not connected`);
-    }
-
-    await this.handleDropSession(clientId, reason, force);
-    this.onSessionClosed(session);
-  }
-
-  protected handleHttpError(err: Error) {
+  protected onHttpError(err: Error) {
     throw new Error('Error occured in HTTP(s) server', { cause: err });
   }
 
@@ -225,43 +210,34 @@ abstract class OcppEndpoint<
   }
 
   protected async onAuthenticationSuccess(request: OcppAuthenticationRequest) {
-    if (await this.sessionService.has(request.client.id)) {
+    if (await this.hasSession(request.client.id)) {
       throw new Error(
         `Client with id ${request.client.id} is already connected`
       );
     }
 
-    const isActiveHandler = () => {
-      return this.hasSession(request.client.id);
-    };
-
-    const dropHandler = () => {
-      this.dropSession(request.client.id);
-    };
-
     const session = new OcppSession(
       request.client,
       request.protocol,
-      isActiveHandler,
-      dropHandler
+      () => this.hasSession(request.client.id),
+      () => this.dropSession(request.client.id)
     );
+
     await this.sessionService.add(session);
-    this.emit('client_connected', session);
+    this.emit('client_connected', request.client);
   }
 
   protected onAuthenticationFailure(request: OcppAuthenticationRequest) {
     this.emit('client_rejected', request);
   }
 
-  protected onSessionClosed(session: OcppSession) {
-    if (!this.sessionService.has(session.client.id)) {
-      throw new Error(
-        `Client with id ${session.client.id} is currently not connected`
-      );
+  protected onSessionClosed(clientId: string) {
+    if (!this.sessionService.has(clientId)) {
+      throw new Error(`Client with id ${clientId} is currently not connected`);
     }
 
-    this.sessionService.remove(session.client.id);
-    this.emit('client_disconnected', session);
+    this.sessionService.remove(clientId);
+    this.emit('client_disconnected', new OcppClient(clientId));
   }
 
   protected onInboundMessage(message: InboundOcppMessage) {
