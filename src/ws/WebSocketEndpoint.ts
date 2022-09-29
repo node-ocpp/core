@@ -4,6 +4,7 @@ import { promises as fsPromises } from 'fs';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
 import { validate as validateJsonSchema } from 'jsonschema';
+import { randomBytes } from 'crypto';
 import basicAuth from 'basic-auth';
 import merge from 'lodash.merge';
 
@@ -36,20 +37,13 @@ import {
 } from '../common/OcppCallErrorMessage';
 
 type WebSocketConfig = OcppEndpointConfig & {
+  wsOptions?: WSOptions;
   route?: string;
   protocols?: Readonly<OcppProtocolVersion[]>;
   basicAuth?: boolean;
   certificateAuth?: boolean;
   schemaValidation?: boolean;
   schemaDir?: Map<OcppProtocolVersion[], string>;
-
-  schemaPathCallback?: (
-    dir: string,
-    type: 'request' | 'response',
-    action: OcppAction
-  ) => string;
-
-  wsOptions?: WSOptions;
 };
 
 class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
@@ -237,138 +231,49 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
       }
 
-      const errorResponse = new OutboundOcppCallError(
-        null,
-        'ProtocolError',
-        null,
-        null,
-        client
-      );
-
-      let rawMessage: Array<any>;
+      let msg;
       try {
-        rawMessage = JSON.parse(data.toString());
-      } catch (e) {
-        errorResponse.description = 'Invalid JSON format';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Error while attempting to deserialize JSON
-            message from client with id ${client.id}`,
-            { cause: e as Error }
-          );
-        });
+        msg = this.parseMessage(data.toString());
+      } catch (err: any) {
+        const errorResponse = new OutboundOcppCallError(
+          client,
+          randomBytes(16).toString(),
+          'ProtocolError',
+          `Failed to parse message: ${err.message}`,
+          null
+        );
+
+        await this.sendMessage(errorResponse);
+
+        throw new Error(
+          `Error while attempting to parsing message from
+          client with id ${client.id}: ${err.message}`,
+          { cause: err }
+        );
       }
 
-      if (!Array.isArray(rawMessage)) {
-        errorResponse.description = 'Message is not an array';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Received message from client with
-            id ${client.id} which is not an array`
-          );
-        });
-      }
-
-      const type: number = rawMessage[0];
-      if (
-        typeof type !== 'number' ||
-        !Object.values(OcppMessageType).includes(type)
-      ) {
-        errorResponse.description = 'Missing or invalid message type field';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Received message from client with id ${client.id}
-            with missing or invalid message type field: ${data.toString()}`
-          );
-        });
-      }
-
-      const id: string = rawMessage[1];
-      if (typeof id !== 'string') {
-        errorResponse.description = 'Missing or invalid message id field';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Received message from client with id ${client.id}
-            with missing or invalid message id field: ${data.toString()}`
-          );
-        });
-      }
-
-      const session = await this.sessionService.get(client.id);
-      const action: OcppAction =
-        type === OcppMessageType.CALL
-          ? rawMessage[2]
-          : session.pendingOutboundMessage?.action;
-
-      if (type === OcppMessageType.CALL && typeof action !== 'string') {
-        errorResponse.description = 'Missing or invalid message action field';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Received CALL message from client with id ${client.id}
-            with missing or invalid message action field: ${data.toString()}`
-          );
-        });
-      }
-
-      const errorCode = rawMessage[2];
-      const errorDescription = rawMessage[3];
-      if (
-        type === OcppMessageType.CALLERROR &&
-        (typeof errorCode !== 'string' || typeof errorDescription !== 'string')
-      ) {
-        errorResponse.description = 'Invalid message type, id or action';
-        this.sendMessage(errorResponse).then(() => {
-          throw new Error(
-            `Received CALLERROR message from client with id ${client.id} with
-            missing or invalid error code/desctiption values: ${data.toString()}`
-          );
-        });
-      }
-
-      const payload: OcppMessagePayload =
-        type === OcppMessageType.CALL
-          ? rawMessage[3]
-          : type === OcppMessageType.CALLRESULT
-          ? rawMessage[2]
-          : type === OcppMessageType.CALLERROR
-          ? rawMessage[4]
-          : null;
+      const {
+        type,
+        id,
+        action,
+        payload,
+        errorCode,
+        errorDescription,
+        errorDetails,
+      } = msg;
 
       if (
         this.config.schemaValidation &&
         (type === OcppMessageType.CALL || type === OcppMessageType.CALLRESULT)
       ) {
-        let schema: Record<string, any>;
-        let schemaType: 'request' | 'response';
-        let schemaMap: Map<OcppAction, Record<string, any>>;
+        const validation = await this.validateSchema(
+          type,
+          action,
+          payload,
+          ws.protocol as OcppProtocolVersion
+        );
 
-        switch (type) {
-          case OcppMessageType.CALL:
-            schemaType = 'request';
-            schemaMap = this.requestSchemas;
-            break;
-
-          case OcppMessageType.CALLRESULT:
-            schemaType = 'response';
-            schemaMap = this.responseSchemas;
-            break;
-        }
-
-        if (!schemaMap.has(action)) {
-          schema = await this.loadJsonSchema(
-            schemaType,
-            action,
-            session.protocol
-          );
-
-          schemaMap.set(action, schema);
-        } else {
-          schema = schemaMap.get(action);
-        }
-
-        const validation = validateJsonSchema(payload, schema);
-
-        if (!validation.valid) {
+        if (!validation?.valid) {
           throw new Error(
             `Validation of JSON schema against payload of
             ${type === OcppMessageType.CALL ? 'CALL' : 'CALLRESULT'}
@@ -404,7 +309,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
             id,
             errorCode,
             errorDescription,
-            payload
+            errorDetails
           );
           break;
       }
@@ -417,7 +322,101 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     throw new Error('Method not implemented.');
   };
 
-  protected async loadJsonSchema(
+  protected parseMessage(rawMessage: string) {
+    let message: Array<any>;
+    try {
+      message = JSON.parse(rawMessage);
+    } catch (err: any) {
+      throw new Error('Invalid JSON format', { cause: err });
+    }
+
+    if (!Array.isArray(message)) {
+      throw new Error('Message is not an array');
+    }
+
+    const type: number = message[0];
+    if (
+      typeof type !== 'number' ||
+      !Object.values(OcppMessageType).includes(type)
+    ) {
+      throw new Error('Missing or invalid type field');
+    }
+
+    const isCallMessage = type === OcppMessageType.CALL;
+    const isCallResultMessage = type === OcppMessageType.CALLRESULT;
+    const isCallErrorMessage = type === OcppMessageType.CALLERROR;
+
+    const id: string = message[1];
+    if (typeof id !== 'string') {
+      throw new Error('Missing or invalid id field');
+    }
+
+    const action: OcppAction = isCallMessage ? message[2] : null;
+    if (isCallMessage && typeof action !== 'string') {
+      throw new Error('Missing or invalid action field');
+    }
+
+    const errorCode = isCallErrorMessage ? message[2] : null;
+    const errorDescription = isCallErrorMessage ? message[3] : null;
+    const errorDetails = isCallErrorMessage ? message[4] : null;
+    if (
+      isCallErrorMessage &&
+      (typeof errorCode !== 'string' || typeof errorDescription !== 'string')
+    ) {
+      throw new Error('Missing or invalid error code or description field');
+    }
+
+    const payload: OcppMessagePayload = isCallMessage
+      ? message[3]
+      : isCallResultMessage
+      ? message[2]
+      : null;
+
+    return {
+      type,
+      id,
+      action,
+      payload,
+      errorCode,
+      errorDescription,
+      errorDetails,
+    };
+  }
+
+  protected async validateSchema(
+    type: OcppMessageType.CALL | OcppMessageType.CALLRESULT,
+    action: OcppAction,
+    payload: OcppMessagePayload,
+    protocol: OcppProtocolVersion
+  ) {
+    let schema: Record<string, any>;
+    let schemaType: 'request' | 'response';
+    let schemaMap: Map<OcppAction, Record<string, any>>;
+
+    switch (type) {
+      case OcppMessageType.CALL:
+        schemaType = 'request';
+        schemaMap = this.requestSchemas;
+        break;
+
+      case OcppMessageType.CALLRESULT:
+        schemaType = 'response';
+        schemaMap = this.responseSchemas;
+        break;
+    }
+
+    if (!schemaMap.has(action)) {
+      schema = await this.loadSchema(schemaType, action, protocol);
+
+      schemaMap.set(action, schema);
+    } else {
+      schema = schemaMap.get(action);
+    }
+
+    return validateJsonSchema(payload, schema);
+  }
+
+  protected async loadSchema(
     type: 'request' | 'response',
     action: OcppAction,
     protocol: OcppProtocolVersion
