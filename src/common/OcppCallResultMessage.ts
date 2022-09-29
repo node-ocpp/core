@@ -7,8 +7,9 @@ import OcppMessage, {
   OutboundOcppMessage,
 } from './OcppMessage';
 
-interface OcppCallResultMessage<TPayload extends OcppMessagePayload>
-  extends OcppMessage {
+interface OcppCallResultMessage<
+  TPayload extends OcppMessagePayload = OcppMessagePayload
+> extends OcppMessage {
   readonly type: OcppMessageType.CALLRESULT;
   data: TPayload;
 }
@@ -47,4 +48,5 @@ class OutboundOcppCallResult<
   }
 }
 
+export default OcppCallResultMessage;
 export { InboundOcppCallResult, OutboundOcppCallResult };

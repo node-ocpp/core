@@ -76,4 +76,5 @@ class OutboundOcppCallError
   }
 }
 
+export default OcppCallErrorMessage;
 export { InboundOcppCallError, OutboundOcppCallError, RPCError };
