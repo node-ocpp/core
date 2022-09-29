@@ -241,11 +241,11 @@ abstract class OcppEndpoint<
     this.emit('client_disconnected', new OcppClient(clientId));
   }
 
-  protected onInboundMessage(message: InboundOcppMessage) {
+  protected async onInboundMessage(message: InboundOcppMessage) {
     this.emit('message_received', message);
 
     try {
-      this.inboundMessageHandlers[0].handle(message);
+      await this.inboundMessageHandlers[0].handle(message);
     } catch (e) {
       if (e instanceof OutboundOcppCallError) {
         this.sendMessage(e);
