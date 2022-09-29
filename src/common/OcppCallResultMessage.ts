@@ -13,7 +13,9 @@ interface OcppCallResultMessage<TPayload extends OcppMessagePayload>
   data: TPayload;
 }
 
-class InboundOcppCallResult<TPayload extends OcppMessagePayload = unknown>
+class InboundOcppCallResult<
+    TPayload extends OcppMessagePayload = OcppMessagePayload
+  >
   extends InboundOcppMessage
   implements OcppCallResultMessage<TPayload>
 {
@@ -23,11 +25,14 @@ class InboundOcppCallResult<TPayload extends OcppMessagePayload = unknown>
 
   constructor(sender: OcppClient, id: string, data: TPayload) {
     super(sender, id);
+    this.type = OcppMessageType.CALLRESULT;
     this.data = data;
   }
 }
 
-class OutboundOcppCallResult<TPayload extends OcppMessagePayload = unknown>
+class OutboundOcppCallResult<
+    TPayload extends OcppMessagePayload = OcppMessagePayload
+  >
   extends OutboundOcppMessage
   implements OcppCallResultMessage<TPayload>
 {
@@ -37,6 +42,7 @@ class OutboundOcppCallResult<TPayload extends OcppMessagePayload = unknown>
 
   constructor(recipient: OcppClient, id: string, data: TPayload) {
     super(recipient, id);
+    this.type = OcppMessageType.CALLRESULT;
     this.data = data;
   }
 }

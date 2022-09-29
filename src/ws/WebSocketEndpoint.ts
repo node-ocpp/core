@@ -101,17 +101,47 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected get sendMessageHandler() {
     const sendHandler = async (message: OutboundOcppMessage) => {
       const ws = this.getSocket(message.recipient.id);
-      const response: any[] = [message.type, message.id];
+      const session = await this.sessionService.get(message.recipient.id);
 
+      const messageArray: any[] = [message.type, message.id];
       if (message instanceof OutboundOcppCall) {
-        response.push(message.action, message.data);
+        messageArray.push(message.action, message.data);
       } else if (message instanceof OutboundOcppCallResult) {
-        response.push(message.data);
+        messageArray.push(message.data);
       } else if (message instanceof OutboundOcppCallError) {
-        response.push(message.code, message.description, message.details);
+        messageArray.push(message.code, message.description, message.details);
       }
 
-      ws.send(JSON.stringify(response));
+      if (
+        this.config.schemaValidation &&
+        (message instanceof OutboundOcppCall ||
+          message instanceof OutboundOcppCallResult)
+      ) {
+        const dateToString = (key: string, value: string) => value;
+        const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
+
+        const messageValidation = await this.validateSchema(
+          message.type,
+          message.action || session.pendingInboundMessage.action,
+          rawData,
+          ws.protocol as OcppProtocolVersion
+        );
+
+        if (!messageValidation?.valid) {
+          throw new Error(
+            `Validation of JSON schema against payload of outbound
+            ${message instanceof OutboundOcppCall ? 'CALL' : 'CALLRESULT'}
+            message to client with id ${message.recipient.id} failed:\n
+            ${messageValidation.errors.map(
+              (err, i, arr) =>
+                `\t${err.property} ${err.message} ${i !== arr.length - 1}`
+            )}`,
+            { cause: messageValidation.errors as any }
+          );
+        }
+      }
+
+      ws.send(JSON.stringify(messageArray));
     };
 
     return new (class extends OutboundOcppMessageHandler {
@@ -306,9 +336,13 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
         if (!messageValidation?.valid) {
           throw new Error(
-            `Validation of JSON schema against payload of
+            `Validation of JSON schema against payload of inbound
             ${type === OcppMessageType.CALL ? 'CALL' : 'CALLRESULT'}
-            message from client with id ${client.id} failed`,
+            message from client with id ${client.id} failed:\n
+            ${messageValidation.errors.map(
+              (err, i, arr) =>
+                `\t${err.property} ${err.message} ${i !== arr.length - 1}`
+            )}`,
             { cause: messageValidation.errors as any }
           );
         }
@@ -442,7 +476,6 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
     if (!schemaMap.has(action)) {
       schema = await this.loadSchema(schemaType, action, protocol);
-
       schemaMap.set(action, schema);
     } else {
       schema = schemaMap.get(action);

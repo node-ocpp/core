@@ -45,6 +45,7 @@ class InboundOcppCallError
     details: OcppMessagePayload = {}
   ) {
     super(sender, id);
+    this.type = OcppMessageType.CALLERROR;
     this.code = code;
     this.description = description;
     this.details = details;
@@ -68,6 +69,7 @@ class OutboundOcppCallError
     details: OcppMessagePayload = {}
   ) {
     super(recipient, id);
+    this.type = OcppMessageType.CALLERROR;
     this.code = code;
     this.description = description;
     this.details = details;

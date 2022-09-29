@@ -42,6 +42,7 @@ class InboundOcppCall<
     responseHandler?: ResponseHandler<TResponse>
   ) {
     super(sender, id, responseHandler);
+    this.type = OcppMessageType.CALL;
     this.action = action;
     this.data = data;
   }
@@ -68,6 +69,7 @@ class OutboundOcppCall<
     responseHandler?: InboundOcppMessageHandler<TResponse>
   ) {
     super(recipient, id, responseHandler);
+    this.type = OcppMessageType.CALL;
     this.action = action;
     this.data = data;
   }

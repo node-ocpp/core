@@ -140,11 +140,11 @@ abstract class OcppEndpoint<
         suffix: <InboundOcppMessageHandler[]>[],
       },
       outboundMessage: {
-        prefix: [
-          new Handlers.OutboundActionsAllowedHandler(this.config),
+        prefix: [new Handlers.OutboundActionsAllowedHandler(this.config)],
+        suffix: <OutboundOcppMessageHandler[]>[
+          this.sendMessageHandler,
           new Handlers.OutboundPendingMessageHandler(this.sessionService),
         ],
-        suffix: <OutboundOcppMessageHandler[]>[this.sendMessageHandler],
       },
     };
   }
@@ -198,6 +198,7 @@ abstract class OcppEndpoint<
     }
 
     await this.outboundMessageHandlers[0].handle(message);
+    message.setSent();
     this.emit('message_sent', message);
   }
 
