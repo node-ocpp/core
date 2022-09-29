@@ -1,9 +1,9 @@
 import { InboundOcppCall } from '../../../../common/OcppCallMessage';
 import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
-import IdToken from '../structs/IdToken';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type AuthorizeRequest = InboundOcppCall<
+  'Authorize',
   AuthorizeRequestPayload,
   AuthorizeResponsePayload,
   AuthorizeResponse

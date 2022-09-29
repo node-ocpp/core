@@ -2,7 +2,8 @@ import { InboundOcppCall } from '../../../../common/OcppCallMessage';
 import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
 
 declare type HeartbeatRequest = InboundOcppCall<
-  null,
+  'Heartbeat',
+  {},
   HeartbeatResponsePayload,
   HeartbeatResponse
 >;

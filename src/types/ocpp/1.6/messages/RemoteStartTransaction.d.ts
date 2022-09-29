@@ -5,6 +5,7 @@ import ChargingProfile from '../structs/ChargingProfile';
 import RemoteStartStopStatus from '../structs/RemoteStartStopStatus';
 
 declare type RemoteStartTransactionRequest = OutboundOcppCall<
+  'RemoteStartTransaction',
   RemoteStartTransactionRequestPayload,
   RemoteStartTransactionResponsePayload,
   RemoteStartTransactionResponse

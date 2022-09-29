@@ -1,7 +1,7 @@
 import { OcppClient } from './OcppSession';
-
-import {
-  OcppMessageType,
+import OcppMessageType from '../types/ocpp/OcppMessageType';
+import OcppAction from '../types/ocpp/OcppAction';
+import OcppMessage, {
   OcppMessagePayload,
   InboundOcppMessage,
   OutboundOcppMessage,
@@ -21,44 +21,60 @@ type RPCError =
   | 'SecurityError'
   | 'TypeConstraintViolation';
 
-class InboundOcppCallError extends InboundOcppMessage {
+interface OcppCallErrorMessage extends OcppMessage {
+  readonly type: OcppMessageType.CALLERROR;
+  code: RPCError;
+  description: string;
+  details: OcppMessagePayload;
+}
+
+class InboundOcppCallError
+  extends InboundOcppMessage
+  implements OcppCallErrorMessage
+{
   readonly type: OcppMessageType.CALLERROR;
   code: RPCError;
   description: string;
   details: OcppMessagePayload;
 
   constructor(
-    id: string,
     sender: OcppClient,
+    id: string,
     code: RPCError = 'GenericError',
     description = '',
     details: OcppMessagePayload = {}
   ) {
-    super(id, sender);
+    super(sender, id);
+    this.type = OcppMessageType.CALLERROR;
     this.code = code;
     this.description = description;
     this.details = details;
   }
 }
 
-class OutboundOcppCallError extends OutboundOcppMessage {
+class OutboundOcppCallError
+  extends OutboundOcppMessage
+  implements OcppCallErrorMessage
+{
   readonly type: OcppMessageType.CALLERROR;
   code: RPCError;
   description: string;
   details: OcppMessagePayload;
 
   constructor(
+    recipient: OcppClient,
     id: string,
     code: RPCError = 'GenericError',
     description = '',
-    details: OcppMessagePayload = {},
-    recipient?: OcppClient
+    details: OcppMessagePayload = {}
   ) {
-    super(id, recipient);
+    super(recipient, id);
+    this.type = OcppMessageType.CALLERROR;
     this.code = code;
     this.description = description;
     this.details = details;
   }
 }
 
+export default OcppCallErrorMessage;
 export { InboundOcppCallError, OutboundOcppCallError, RPCError };

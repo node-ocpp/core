@@ -1,15 +1,49 @@
 import { InboundOcppCall, OutboundOcppCall } from './OcppCallMessage';
-import { OcppProtocolVersion } from './OcppEndpoint';
+import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
 
 class OcppSession {
+  private _isActiveHandler: () => boolean;
+  private _dropHandler: () => void;
+
   readonly client: OcppClient;
   readonly protocol: OcppProtocolVersion;
   pendingInboundMessage?: InboundOcppCall;
   pendingOutboundMessage?: OutboundOcppCall;
 
-  constructor(client: OcppClient, protocol: OcppProtocolVersion) {
+  constructor(
+    client: OcppClient,
+    protocol: OcppProtocolVersion,
+    isActiveHandler?: () => boolean,
+    dropHandler?: () => void
+  ) {
     this.client = client;
     this.protocol = protocol;
+    this._isActiveHandler = isActiveHandler;
+    this._dropHandler = dropHandler;
+  }
+
+  get isActive() {
+    if (!this._isActiveHandler) {
+      throw new Error('isActive() was called but isActiveHandler is not set');
+    }
+
+    return this._isActiveHandler();
+  }
+
+  drop() {
+    if (!this._dropHandler) {
+      throw new Error('drop() was called but dropHandler is not set');
+    }
+
+    this._dropHandler();
+  }
+
+  set isActiveHandler(handler: () => boolean) {
+    this._isActiveHandler = handler;
+  }
+
+  set dropHandler(handler: () => void) {
+    this._dropHandler = handler;
   }
 }
 

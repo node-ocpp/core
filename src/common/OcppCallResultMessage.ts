@@ -1,33 +1,52 @@
 import { OcppClient } from './OcppSession';
-import {
-  OcppMessageType,
+import OcppMessageType from '../types/ocpp/OcppMessageType';
+import OcppAction from '../types/ocpp/OcppAction';
+import OcppMessage, {
   OcppMessagePayload,
   InboundOcppMessage,
   OutboundOcppMessage,
 } from './OcppMessage';
 
-class InboundOcppCallResult<
-  TPayload extends OcppMessagePayload = unknown
-> extends InboundOcppMessage {
+interface OcppCallResultMessage<
+  TPayload extends OcppMessagePayload = OcppMessagePayload
+> extends OcppMessage {
   readonly type: OcppMessageType.CALLRESULT;
   data: TPayload;
+}
 
-  constructor(id: string, sender: OcppClient, data: TPayload) {
-    super(id, sender);
+class InboundOcppCallResult<
+    TPayload extends OcppMessagePayload = OcppMessagePayload
+  >
+  extends InboundOcppMessage
+  implements OcppCallResultMessage<TPayload>
+{
+  readonly type: OcppMessageType.CALLRESULT;
+  action: OcppAction;
+  data: TPayload;
+
+  constructor(sender: OcppClient, id: string, data: TPayload) {
+    super(sender, id);
+    this.type = OcppMessageType.CALLRESULT;
     this.data = data;
   }
 }
 
 class OutboundOcppCallResult<
-  TPayload extends OcppMessagePayload = unknown
-> extends OutboundOcppMessage {
+    TPayload extends OcppMessagePayload = OcppMessagePayload
+  >
+  extends OutboundOcppMessage
+  implements OcppCallResultMessage<TPayload>
+{
   readonly type: OcppMessageType.CALLRESULT;
+  action: OcppAction;
   data: TPayload;
 
-  constructor(id: string, data: TPayload, recipient?: OcppClient) {
-    super(id, recipient);
+  constructor(recipient: OcppClient, id: string, data: TPayload) {
+    super(recipient, id);
+    this.type = OcppMessageType.CALLRESULT;
     this.data = data;
   }
 }
 
+export default OcppCallResultMessage;
 export { InboundOcppCallResult, OutboundOcppCallResult };
