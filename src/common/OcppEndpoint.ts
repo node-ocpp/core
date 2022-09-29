@@ -9,7 +9,6 @@ import https, {
 import http, { Server as HTTPServer, ServerOptions as HTTPOptions } from 'http';
 import { EventEmitter } from 'events';
 import merge from 'lodash.merge';
-import os from 'os';
 
 import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
 import LocalSessionService from './services/LocalSessionService';
@@ -114,7 +113,7 @@ abstract class OcppEndpoint<
   protected get defaultConfig() {
     return {
       port: process.env.NODE_ENV === 'development' ? 8080 : 80,
-      hostname: os.hostname(),
+      hostname: 'localhost',
       httpOptions: this.defaultHttpOptions,
       protocols: OcppProtocolVersions,
       actionsAllowed: OcppActions,
