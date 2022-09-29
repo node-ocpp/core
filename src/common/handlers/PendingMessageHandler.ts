@@ -32,7 +32,7 @@ class InboundPendingMessageHandler extends InboundOcppMessageHandler {
       await this.sessionService.update(session.client.id, session);
     }
 
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 
@@ -65,7 +65,7 @@ class OutboundPendingMessageHandler extends OutboundOcppMessageHandler {
       await this.sessionService.update(session.client.id, session);
     }
 
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 

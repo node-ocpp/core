@@ -29,7 +29,7 @@ class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
       );
     }
 
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 
@@ -49,7 +49,7 @@ class OutboundActionsAllowedHandler extends OutboundOcppMessageHandler {
       throw new Error(`Action ${message.action} is not supported`);
     }
 
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 

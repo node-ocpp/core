@@ -18,7 +18,7 @@ class SessionExistsHandler extends OcppAuthenticationHandler {
       return;
     }
 
-    super.handle(request);
+    return await super.handle(request);
   }
 }
 

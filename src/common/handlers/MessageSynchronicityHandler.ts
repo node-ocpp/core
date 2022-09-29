@@ -76,7 +76,7 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
       );
     }
 
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 
