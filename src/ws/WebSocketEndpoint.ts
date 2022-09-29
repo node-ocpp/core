@@ -134,7 +134,8 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
             message to client with id ${message.recipient.id} failed:\n
             ${messageValidation.errors.map(
               (err, i, arr) =>
-                `\t${err.property} ${err.message} ${i !== arr.length - 1}`
+                `\t${err.property} ${err.message}
+                ${i !== arr.length - 1 ? '\n' : ''}`
             )}`,
             { cause: messageValidation.errors as any }
           );
@@ -341,7 +342,8 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
             message from client with id ${client.id} failed:\n
             ${messageValidation.errors.map(
               (err, i, arr) =>
-                `\t${err.property} ${err.message} ${i !== arr.length - 1}`
+                `\t${err.property} ${err.message}
+                ${i !== arr.length - 1 ? '\n' : ''}`
             )}`,
             { cause: messageValidation.errors as any }
           );
