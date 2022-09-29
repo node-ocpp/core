@@ -98,10 +98,30 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     return merge(super.defaultConfig, config);
   }
 
-      wsOptions: { noServer: true },
-    } as WebSocketConfig;
+  protected get sendMessageHandler() {
+    const sendHandler = async (message: OutboundOcppMessage) => {
+      const ws = this.getSocket(message.recipient.id);
+      const response: any[] = [message.type, message.id];
+
+      if (message instanceof OutboundOcppCall) {
+        response.push(message.action, message.data);
+      } else if (message instanceof OutboundOcppCallResult) {
+        response.push(message.data);
+      } else if (message instanceof OutboundOcppCallError) {
+        response.push(message.code, message.description, message.details);
+      }
+
+      ws.send(JSON.stringify(response));
+    };
+
+    return new (class extends OutboundOcppMessageHandler {
+      handle = sendHandler;
+    })() as OutboundOcppMessageHandler;
   }
 
+  public hasSession(clientId: string) {
+    return this.getSocket(clientId)?.readyState === WebSocket.OPEN;
+  }
 
   public async dropSession(
     clientId: string,
