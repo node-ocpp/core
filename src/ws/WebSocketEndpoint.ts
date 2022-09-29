@@ -222,7 +222,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
         (ws as any)._url = request.url;
-        ws.on('close', this.onWsDisconnected);
+
+        ws.on('close', (code, reason) =>
+          this.onWsDisconnected(ws, code, reason)
+        );
+
         this.wsServer.emit('connection', ws, request, authRequest.client);
       });
     };
