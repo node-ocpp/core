@@ -99,7 +99,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   }
 
   protected get sendMessageHandler() {
-    const sendHandler = async (message: OutboundOcppMessage) => {
+    const handleSend = async (message: OutboundOcppMessage) => {
       const ws = this.getSocket(message.recipient.id);
       const session = await this.sessionService.get(message.recipient.id);
 
@@ -146,7 +146,10 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     };
 
     return new (class extends OutboundOcppMessageHandler {
-      handle = sendHandler;
+      async handle(message: OutboundOcppMessage) {
+        await handleSend(message);
+        return await super.handle(message);
+      }
     })() as OutboundOcppMessageHandler;
   }
 
