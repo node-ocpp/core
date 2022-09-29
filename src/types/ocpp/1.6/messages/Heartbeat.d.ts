@@ -3,7 +3,7 @@ import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage
 
 declare type HeartbeatRequest = InboundOcppCall<
   'Heartbeat',
-  null,
+  {},
   HeartbeatResponsePayload,
   HeartbeatResponse
 >;

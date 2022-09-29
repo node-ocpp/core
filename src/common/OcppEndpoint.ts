@@ -47,8 +47,9 @@ type OcppEndpointEvents = {
   server_listening: (config: OcppEndpointConfig) => void;
   server_stopping: () => void;
   server_stopped: () => void;
+  client_connecting: (client: OcppClient) => void;
   client_connected: (client: OcppClient) => void;
-  client_rejected: (request: OcppAuthenticationRequest) => void;
+  client_rejected: (client: OcppClient) => void;
   client_disconnected: (client: OcppClient) => void;
   message_sent: (message: OutboundOcppMessage) => void;
   message_received: (message: InboundOcppMessage) => void;
@@ -167,9 +168,7 @@ abstract class OcppEndpoint<
       this.config.port,
       this.config.hostname,
       this.config.maxConnections,
-      () => {
-        this.emit('server_listening', this.config);
-      }
+      () => this.emit('server_listening', this.config)
     );
   }
 
@@ -182,9 +181,9 @@ abstract class OcppEndpoint<
     this.httpServer.close(err => {
       if (err) {
         throw new Error('Error while stopping HTTP(S) server', { cause: err });
+      } else {
+        this.emit('server_stopped');
       }
-
-      this.emit('server_stopped');
     });
   }
 
@@ -207,7 +206,12 @@ abstract class OcppEndpoint<
   }
 
   protected async onAuthenticationAttempt(request: OcppAuthenticationRequest) {
+    this.emit('client_connecting', request.client);
     await this.authenticationHandlers[0].handle(request);
+  }
+
+  protected onAuthenticationFailure(request: OcppAuthenticationRequest) {
+    this.emit('client_rejected', request.client);
   }
 
   protected async onAuthenticationSuccess(request: OcppAuthenticationRequest) {
@@ -228,10 +232,6 @@ abstract class OcppEndpoint<
     this.emit('client_connected', request.client);
   }
 
-  protected onAuthenticationFailure(request: OcppAuthenticationRequest) {
-    this.emit('client_rejected', request);
-  }
-
   protected onSessionClosed(clientId: string) {
     if (!this.sessionService.has(clientId)) {
       throw new Error(`Client with id ${clientId} is currently not connected`);
@@ -246,11 +246,11 @@ abstract class OcppEndpoint<
 
     try {
       await this.inboundMessageHandlers[0].handle(message);
-    } catch (e) {
-      if (e instanceof OutboundOcppCallError) {
-        this.sendMessage(e);
+    } catch (err) {
+      if (err instanceof OutboundOcppCallError) {
+        await this.sendMessage(err);
       } else {
-        throw e;
+        throw err;
       }
     }
   }

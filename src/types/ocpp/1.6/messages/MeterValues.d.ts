@@ -5,11 +5,11 @@ import MeterValue from '../structs/MeterValue';
 declare type MeterValuesRequest = InboundOcppCall<
   'MeterValues',
   MeterValuesRequestPayload,
-  null,
+  {},
   MeterValuesResponse
 >;
 
-declare type MeterValuesResponse = OutboundOcppCallResult<null>;
+declare type MeterValuesResponse = OutboundOcppCallResult<{}>;
 
 declare type MeterValuesRequestPayload = {
   connectorId: number;
