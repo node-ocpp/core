@@ -306,7 +306,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       } catch (err: any) {
         const errorResponse = new OutboundOcppCallError(
           client,
-          randomBytes(16).toString(),
+          randomBytes(16).toString('hex'),
           'ProtocolError',
           `Failed to parse message: ${err.message}`,
           null
@@ -315,7 +315,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         await this.sendMessage(errorResponse);
 
         throw new Error(
-          `Error while attempting to parsing message from
+          `Error while attempting to parse message from
           client with id ${client.id}: ${err.message}`,
           { cause: err }
         );
