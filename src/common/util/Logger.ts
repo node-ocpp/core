@@ -1,5 +1,8 @@
 import winston, { format, transports } from 'winston';
 import { Logger } from 'ts-log';
+import pick from 'lodash.pick';
+
+import OcppMessage from '../OcppMessage';
 
 const config = {
   transports: [new transports.Console({})],
@@ -22,9 +25,24 @@ const config = {
     format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss',
     }),
-    format.prettyPrint(),
     format.printf(log => {
-      if (typeof log.message === 'object') {
+      if (log.message instanceof OcppMessage) {
+        return JSON.stringify(
+          pick(log.message, [
+            'id',
+            'type',
+            'action',
+            'data',
+            'errorCode',
+            'errorDescription',
+            'errorDetails',
+          ]),
+          null,
+          2
+        );
+      }
+
+      if (typeof log.message === 'object' || Array.isArray(log.message)) {
         return JSON.stringify(log.message, null, '  ');
       }
 
