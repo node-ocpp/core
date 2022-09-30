@@ -4,6 +4,7 @@ import { promises as fsPromises } from 'fs';
 import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
 import { validate as validateJsonSchema } from 'jsonschema';
+import { oneLine, oneLineInlineLists } from 'common-tags';
 import { randomBytes } from 'crypto';
 import basicAuth from 'basic-auth';
 import merge from 'lodash.merge';
@@ -190,34 +191,34 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     socket: Duplex,
     head: Buffer
   ) => {
-    const requestPath = path.parse(request.url);
-    const basicCredentials = basicAuth(request);
-    const basicAuthEnabled = this.config.basicAuth;
+    let error;
+    let requestProperties;
 
-    const clientProtocols =
-      request.headers['sec-websocket-protocol']?.split(',');
+    try {
+      requestProperties = this.parseUpgradeRequest(request);
+    } catch (err) {
+      error = err as any as Error;
+    }
 
-    const supportedProtocols = this.config.protocols.filter(protocol =>
-      clientProtocols?.includes(protocol)
-    ) as OcppProtocolVersion[];
+    const { id, password, protocols } = requestProperties;
 
     const authRequest = new (class extends OcppAuthenticationRequest {
-      client = new OcppClient(requestPath.base);
-      protocols = supportedProtocols;
-      password = basicAuthEnabled ? basicCredentials?.pass : undefined;
+      client = new OcppClient(id);
+      protocols = protocols;
+      password = password ?? undefined;
 
       accept(protocol = this.protocols[0]) {
         super.accept(protocol);
-        acceptRequest();
+        onAccept();
       }
 
       reject(status = 401) {
         super.reject();
-        rejectRequest(status);
+        onReject(status);
       }
     })();
 
-    const acceptRequest = async () => {
+    const onAccept = async () => {
       await this.onAuthenticationSuccess(authRequest);
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
@@ -231,61 +232,76 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       });
     };
 
-    const rejectRequest = (status: number) => {
+    const onReject = (status: number) => {
       this.onAuthenticationFailure(authRequest);
+
       socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
       socket.destroy();
     };
+
+    if (error) {
+      this.logger.warn('Error while parsing HTTP(S) upgrade request');
+      this.logger.trace(error.stack);
+      authRequest.reject(400);
+    }
+
+    this.onAuthenticationAttempt(authRequest);
+  };
+
+  protected parseUpgradeRequest(request: HTTPRequest) {
+    const requestPath = path.parse(request.url);
+    const clientId = requestPath.base;
+
+    const basicCredentials = this.config.basicAuth
+      ? basicAuth(request)
+      : undefined;
+
+    const clientProtocols =
+      request.headers['sec-websocket-protocol']?.split(',');
+
+    const supportedProtocols = this.config.protocols.filter(protocol =>
+      clientProtocols?.includes(protocol)
+    ) as OcppProtocolVersion[];
 
     const trimSlashesRegex = /^\/+|\/+$/g;
     if (
       requestPath.dir.replaceAll(trimSlashesRegex, '') !==
       this.config.route.replaceAll(trimSlashesRegex, '')
     ) {
-      authRequest.reject(400);
       throw new Error(
-        `Client attempted authentication on invalid route: ${request.url}`
+        oneLine`Client with id ${clientId} attempted
+        authentication on invalid route: ${request.url}`
       );
-    }
-
-    if (!clientProtocols) {
-      authRequest.reject(400);
+    } else if (!clientProtocols) {
       throw new Error(
-        `Client with id ${authRequest.client.id} attempted authentication
+        oneLine`Client with id ${clientId} attempted authentication
         without specifying any WebSocket subprotocol`
       );
-    }
-
-    if (supportedProtocols.length === 0) {
-      authRequest.reject(400);
+    } else if (supportedProtocols.length === 0) {
       throw new Error(
-        `Client with id ${authRequest.client.id} attempted authentication
-        with unsupported WebSocket subprotocol(s): ${clientProtocols}`
+        oneLineInlineLists`Client with id ${clientId}
+        attempted authentication with unsupported WebSocket
+        subprotocol(s): ${clientProtocols}`
       );
-    }
-
-    if (this.config.basicAuth && !basicCredentials) {
-      authRequest.reject(400);
+    } else if (this.config.basicAuth && !basicCredentials) {
       throw new Error(
-        `Client with id ${authRequest.client.id} attempted
+        oneLine`Client with id ${clientId} attempted
         authentication without supplying BASIC credentials`
       );
-    }
-
-    if (
-      this.config.basicAuth &&
-      basicCredentials.name !== authRequest.client.id
-    ) {
-      authRequest.reject(400);
+    } else if (this.config.basicAuth && basicCredentials.name !== clientId) {
       throw new Error(
-        `Client attempted authentication with mismatching ids
-        ${authRequest.client.id} in request path and ${basicCredentials.name}
-        in BASIC credentials`
+        oneLine`Client attempted authentication with
+        mismatching ids ${clientId} in request path and
+        ${basicCredentials.name} in BASIC credentials`
       );
     }
 
-    this.onAuthenticationAttempt(authRequest);
-  };
+    return {
+      id: clientId,
+      password: basicCredentials?.pass,
+      protocols: supportedProtocols,
+    };
+  }
 
   protected onWsConnected = (
     ws: WebSocket,
