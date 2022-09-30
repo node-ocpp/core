@@ -1,3 +1,5 @@
+import { Logger } from 'ts-log';
+
 import path from 'path';
 import { Duplex } from 'stream';
 import { promises as fsPromises } from 'fs';
@@ -12,6 +14,7 @@ import merge from 'lodash.merge';
 import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
 import { OcppClient, OcppSessionService } from '../common/OcppSession';
 import { InboundOcppCall, OutboundOcppCall } from '../common/OcppCallMessage';
+
 import {
   InboundOcppCallResult,
   OutboundOcppCallResult,
@@ -61,14 +64,16 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     authenticationHandlers: OcppAuthenticationHandler[],
     inboundMessageHandlers: InboundOcppMessageHandler[],
     outboundMessageHandlers?: OutboundOcppMessageHandler[],
-    sessionService?: OcppSessionService
+    sessionService?: OcppSessionService,
+    logger?: Logger
   ) {
     super(
       config,
       authenticationHandlers,
       inboundMessageHandlers,
       outboundMessageHandlers,
-      sessionService
+      sessionService,
+      logger
     );
     this.wsServer = new WSServer(this.config.wsOptions);
     this.httpServer.on('upgrade', this.onHttpUpgrade);
@@ -129,16 +134,15 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
 
         if (!messageValidation?.valid) {
-          throw new Error(
-            `Validation of JSON schema against payload of outbound
-            ${message instanceof OutboundOcppCall ? 'CALL' : 'CALLRESULT'}
-            message to client with id ${message.recipient.id} failed:\n
-            ${messageValidation.errors.map(
-              (err, i, arr) =>
-                `\t${err.property} ${err.message}
-                ${i !== arr.length - 1 ? '\n' : ''}`
-            )}`,
-            { cause: messageValidation.errors as any }
+          this.logger.warn(
+            oneLine`Outbound ${OcppMessageType[message.type]}
+            message payload is not valid`
+          );
+          this.logger.trace(messageValidation.errors);
+          return;
+        } else {
+          this.logger.debug(
+            `Outbound ${OcppMessageType[message.type]} message payload is valid`
           );
         }
       }
@@ -310,16 +314,23 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   ) => {
     ws.on('message', async (data, isBinary) => {
       if (isBinary) {
-        throw new Error(
-          `Received binary message from client with id
-          ${client.id} which is currently not supported`
+        this.logger.warn(
+          `Received message with binary data from client with
+          id ${client.id} which is currently not supported`
         );
+        this.dropSession(client.id);
+        return;
       }
 
       let messageProperties;
       try {
-        messageProperties = this.parseMessage(data.toString());
+        messageProperties = this.parseRawMessage(data.toString());
       } catch (err: any) {
+        this.logger.warn(
+          `Error while parsing message from client with id ${client.id}`
+        );
+        this.logger.trace(err.stack);
+
         const errorResponse = new OutboundOcppCallError(
           client,
           randomBytes(16).toString('hex'),
@@ -329,12 +340,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
 
         await this.sendMessage(errorResponse);
-
-        throw new Error(
-          `Error while attempting to parse message from
-          client with id ${client.id}: ${err.message}`,
-          { cause: err }
-        );
+        return;
       }
 
       const {
@@ -359,16 +365,14 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
 
         if (!messageValidation?.valid) {
-          throw new Error(
-            `Validation of JSON schema against payload of inbound
-            ${type === OcppMessageType.CALL ? 'CALL' : 'CALLRESULT'}
-            message from client with id ${client.id} failed:\n
-            ${messageValidation.errors.map(
-              (err, i, arr) =>
-                `\t${err.property} ${err.message}
-                ${i !== arr.length - 1 ? '\n' : ''}`
-            )}`,
-            { cause: messageValidation.errors as any }
+          this.logger.warn(
+            `Inbound ${OcppMessageType[type]} message payload is not valid`
+          );
+          this.logger.trace(messageValidation.errors);
+          return;
+        } else {
+          this.logger.debug(
+            `Inbound ${OcppMessageType[type]} message payload is valid`
           );
         }
       }
@@ -416,7 +420,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.onSessionClosed(path.parse(ws.url).base);
   };
 
-  protected parseMessage(rawMessage: string) {
+  protected parseRawMessage(rawMessage: string) {
     let message: Array<any>;
     try {
       message = JSON.parse(rawMessage);
