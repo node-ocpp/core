@@ -213,7 +213,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
       accept(protocol = this.protocols[0]) {
         super.accept(protocol);
-        onAccept();
+        onAccept(protocol);
       }
 
       reject(status = 401) {
@@ -222,7 +222,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       }
     })();
 
-    const onAccept = async () => {
+    const onAccept = async (protocol: OcppProtocolVersion) => {
+      this.logger.debug(
+        `Upgrading WebSocket connection with subprotocol: ${protocol}`
+      );
+
       await this.onAuthenticationSuccess(authRequest);
 
       this.wsServer.handleUpgrade(request, socket, head, ws => {
@@ -237,6 +241,11 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     };
 
     const onReject = (status: number) => {
+      this.logger.debug(
+        oneLine`Rejecting upgrade request with
+        status: ${status} ${STATUS_CODES[status]}`
+      );
+
       this.onAuthenticationFailure(authRequest);
 
       socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
