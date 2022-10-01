@@ -1,18 +1,24 @@
-import { OutboundOcppCallError } from '../OcppCallErrorMessage';
-import { InboundOcppCall, OutboundOcppCall } from '../OcppCallMessage';
+import { Logger } from 'ts-log';
+import { oneLine } from 'common-tags';
+
 import { OcppEndpointConfig } from '../OcppEndpoint';
+import OcppMessageType from '../../types/ocpp/OcppMessageType';
+import { InboundOcppMessage, OutboundOcppMessage } from '../OcppMessage';
+import { InboundOcppCall, OutboundOcppCall } from '../OcppCallMessage';
+import { OutboundOcppCallError } from '../OcppCallErrorMessage';
 import {
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
 } from '../OcppHandlers';
-import { InboundOcppMessage, OutboundOcppMessage } from '../OcppMessage';
 
 class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
   private config: OcppEndpointConfig;
+  private logger: Logger;
 
-  constructor(config: OcppEndpointConfig) {
+  constructor(config: OcppEndpointConfig, logger: Logger) {
     super();
     this.config = config;
+    this.logger = logger;
   }
 
   async handle(message: InboundOcppMessage) {
@@ -20,12 +26,16 @@ class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
       message instanceof InboundOcppCall &&
       !this.config.actionsAllowed.includes(message.action)
     ) {
+      this.logger.warn(
+        oneLine`Received ${OcppMessageType[message.type]}
+        message with unsupported action: ${message.action}`
+      );
+
       throw new OutboundOcppCallError(
         message.sender,
         message.id,
         'NotImplemented',
-        `Action ${message.action} is not supported`,
-        null
+        'Action is not supported'
       );
     }
 
@@ -35,10 +45,12 @@ class InboundActionsAllowedHandler extends InboundOcppMessageHandler {
 
 class OutboundActionsAllowedHandler extends OutboundOcppMessageHandler {
   private config: OcppEndpointConfig;
+  private logger: Logger;
 
-  constructor(config: OcppEndpointConfig) {
+  constructor(config: OcppEndpointConfig, logger: Logger) {
     super();
     this.config = config;
+    this.logger = logger;
   }
 
   async handle(message: OutboundOcppMessage) {
@@ -46,7 +58,11 @@ class OutboundActionsAllowedHandler extends OutboundOcppMessageHandler {
       message instanceof OutboundOcppCall &&
       !this.config.actionsAllowed.includes(message.action)
     ) {
-      throw new Error(`Action ${message.action} is not supported`);
+      this.logger.warn(
+        oneLine`Attempted to send ${OcppMessageType[message.type]}
+        message with unsupported action: ${message.action}`
+      );
+      return;
     }
 
     return await super.handle(message);

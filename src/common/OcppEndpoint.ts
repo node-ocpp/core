@@ -133,20 +133,25 @@ abstract class OcppEndpoint<
     return {
       authentication: {
         prefix: <OcppAuthenticationHandler[]>[
-          new Handlers.SessionExistsHandler(this.sessionService),
+          new Handlers.SessionExistsHandler(this.sessionService, this.logger),
         ],
         suffix: <OcppAuthenticationHandler[]>[],
       },
       inboundMessage: {
         prefix: [
-          new Handlers.InboundActionsAllowedHandler(this.config),
-          new Handlers.InboundMessageSynchronicityHandler(this.sessionService),
+          new Handlers.InboundActionsAllowedHandler(this.config, this.logger),
+          new Handlers.InboundMessageSynchronicityHandler(
+            this.sessionService,
+            this.logger
+          ),
           new Handlers.InboundPendingMessageHandler(this.sessionService),
         ],
         suffix: <InboundOcppMessageHandler[]>[],
       },
       outboundMessage: {
-        prefix: [new Handlers.OutboundActionsAllowedHandler(this.config)],
+        prefix: [
+          new Handlers.OutboundActionsAllowedHandler(this.config, this.logger),
+        ],
         suffix: <OutboundOcppMessageHandler[]>[
           this.sendMessageHandler,
           new Handlers.OutboundPendingMessageHandler(this.sessionService),
