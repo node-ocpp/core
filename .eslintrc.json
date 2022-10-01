@@ -2,6 +2,7 @@
   "extends": "./node_modules/gts/",
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
-    "node/no-unpublished-import": "off"
+    "node/no-unpublished-import": "off",
+    "node/no-extraneous-import": "off"
   }
 }
