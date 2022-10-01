@@ -258,7 +258,7 @@ abstract class OcppEndpoint<
   };
 
   protected async onAuthenticationAttempt(request: OcppAuthenticationRequest) {
-    this.logger.info(
+    this.logger.debug(
       `Client with id ${request.client.id} attempting authentication`
     );
     this.emit('client_connecting', request.client);
