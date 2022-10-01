@@ -1,3 +1,6 @@
+import { Logger } from 'ts-log';
+import { oneLine } from 'common-tags';
+
 import {
   InboundOcppMessageHandler,
   OutboundOcppMessageHandler,
@@ -10,16 +13,17 @@ import OcppMessageType from '../../types/ocpp/OcppMessageType';
 
 class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
   private sessionService;
+  private logger;
 
-  constructor(sessionService: OcppSessionService) {
+  constructor(sessionService: OcppSessionService, logger: Logger) {
     super();
     this.sessionService = sessionService;
-    this.sessionService.create();
+    this.logger = logger;
   }
 
   async handle(message: InboundOcppMessage) {
     const session = await this.sessionService.get(message.sender.id);
-    const messageType = OcppMessageType[message.type];
+    let error = false;
 
     /*
     If the endpoint has sent an outbound CALL message, the client must respond
@@ -32,14 +36,10 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
       !(message instanceof InboundOcppCall) &&
       message.id !== session.pendingOutboundMessage.id
     ) {
-      throw new OutboundOcppCallError(
-        message.sender,
-        message.id,
-        'ProtocolError',
-        `Received ${messageType} message with id ${message.id} from client with
-        id ${message.sender.id} which does not match pending outbound CALL
-        message with id ${session.pendingOutboundMessage.id}`,
-        message
+      error = true;
+      this.logger.warn(
+        oneLine`Received ${OcppMessageType[message.type]} message
+        which is out of sync with pending outbound CALL message`
       );
     }
 
@@ -51,13 +51,10 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
       !session.pendingOutboundMessage &&
       !(message instanceof InboundOcppCall)
     ) {
-      throw new OutboundOcppCallError(
-        message.sender,
-        message.id,
-        'ProtocolError',
-        `Received ${messageType} message from client with id
-        ${message.sender.id} while there is no pending outbound CALL message`,
-        message
+      error = true;
+      this.logger.warn(
+        oneLine`Received ${OcppMessageType[message.type]} message
+        while there is no pending outbound CALL message`
       );
     }
 
@@ -66,12 +63,19 @@ class InboundMessageSynchronicityHandler extends InboundOcppMessageHandler {
     has been responded to by the server.
     */
     if (session.pendingInboundMessage && message instanceof InboundOcppCall) {
+      error = true;
+      this.logger.warn(
+        oneLine`Received CALL message while there
+        is already a pending inbound CALL message`
+      );
+    }
+
+    if (error) {
       throw new OutboundOcppCallError(
         message.sender,
         message.id,
         'ProtocolError',
-        `Received CALL message from client with id ${message.sender.id}
-        while there is already a pending inbound CALL message`,
+        'Message is out of sync',
         message
       );
     }
@@ -89,7 +93,7 @@ class OutboundMessageSynchronicityHandler extends OutboundOcppMessageHandler {
   }
 
   async handle(message: OutboundOcppMessage) {
-    return super.handle(message);
+    return await super.handle(message);
   }
 }
 
