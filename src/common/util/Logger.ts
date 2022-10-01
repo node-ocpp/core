@@ -33,9 +33,9 @@ const config = {
             'type',
             'action',
             'data',
-            'errorCode',
-            'errorDescription',
-            'errorDetails',
+            'code',
+            'description',
+            'details',
           ]),
           null,
           2
