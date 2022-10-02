@@ -1,11 +1,11 @@
 /* eslint-disable no-case-declarations */
 
-import WebSocketEndpoint from '../src/ws/WebSocketEndpoint';
+import WsEndpoint from '../src/ws/ws-endpoint';
 import * as Handlers from './handlers';
 
-const wsEndpoint = new WebSocketEndpoint(
+const wsEndpoint = new WsEndpoint(
   { basicAuth: false },
-  [new Handlers.AuthenticationHandler()],
+  [new Handlers.BasicAuthHandler()],
   [
     new Handlers.BootNotificationHandler(),
     new Handlers.StatusNotificationHandler(),

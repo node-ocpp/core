@@ -1,7 +1,7 @@
-import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { OutboundCall } from '../../../../common/call';
+import { InboundCallResult } from '../../../../common/callresult';
 
-declare type ChangeConfigurationRequest = OutboundOcppCall<
+declare type ChangeConfigurationRequest = OutboundCall<
   'ChangeConfiguration',
   ChangeConfigurationRequestPayload,
   ChangeConfigurationResponsePayload,
@@ -14,7 +14,7 @@ declare type ChangeConfigurationRequestPayload = {
 };
 
 declare type ChangeConfigurationResponse =
-  InboundOcppCallResult<ChangeConfigurationResponsePayload>;
+  InboundCallResult<ChangeConfigurationResponsePayload>;
 
 declare type ChangeConfigurationResponsePayload = {
   status: ConfigurationStatus;

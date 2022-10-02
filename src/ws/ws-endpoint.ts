@@ -1,81 +1,63 @@
-import { Logger } from 'ts-log';
-
+import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
+import { WebSocket, Server as WsServer, ServerOptions } from 'ws';
 import path from 'path';
-import { Duplex } from 'stream';
 import { promises as fsPromises } from 'fs';
-import { IncomingMessage as HTTPRequest, STATUS_CODES } from 'http';
-import { WebSocket, Server as WSServer, ServerOptions as WSOptions } from 'ws';
-import { validate as validateJsonSchema } from 'jsonschema';
-import { oneLine, oneLineInlineLists } from 'common-tags';
+import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
+import { Logger } from 'ts-log';
+import { oneLine, oneLineInlineLists } from 'common-tags';
+import { validate as validateJsonSchema } from 'jsonschema';
 import basicAuth from 'basic-auth';
 import merge from 'lodash.merge';
 
-import OcppEndpoint, { OcppEndpointConfig } from '../common/OcppEndpoint';
-import { OcppClient, OcppSessionService } from '../common/OcppSession';
-import { InboundOcppCall, OutboundOcppCall } from '../common/OcppCallMessage';
-
+import OcppEndpoint, { EndpointOptions } from '../common/endpoint';
+import { Client, SessionService } from '../common/session';
+import { InboundMessage, OutboundMessage, Payload } from '../common/message';
+import { InboundCall, OutboundCall } from '../common/call';
+import { InboundCallResult, OutboundCallResult } from '../common/callresult';
+import { InboundCallError, OutboundCallError } from '../common/callerror';
+import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
+import MessageType from '../types/ocpp/type';
+import OcppAction from '../types/ocpp/action';
 import {
-  InboundOcppCallResult,
-  OutboundOcppCallResult,
-} from '../common/OcppCallResultMessage';
+  InboundMessageHandler,
+  AuthenticationHandler,
+  AuthenticationRequest,
+  OutboundMessageHandler,
+} from '../common/handler';
 
-import {
-  InboundOcppCallError,
-  OutboundOcppCallError,
-} from '../common/OcppCallErrorMessage';
-
-import OcppProtocolVersion, {
-  OcppProtocolVersions,
-} from '../types/ocpp/OcppProtocolVersion';
-import OcppMessageType from '../types/ocpp/OcppMessageType';
-import OcppAction from '../types/ocpp/OcppAction';
-
-import {
-  InboundOcppMessage,
-  OcppMessagePayload,
-  OutboundOcppMessage,
-} from '../common/OcppMessage';
-
-import {
-  InboundOcppMessageHandler,
-  OcppAuthenticationHandler,
-  OcppAuthenticationRequest,
-  OutboundOcppMessageHandler,
-} from '../common/OcppHandlers';
-
-type WebSocketConfig = OcppEndpointConfig & {
-  wsOptions?: WSOptions;
+type WsOptions = EndpointOptions & {
+  wsServerOptions?: ServerOptions;
   route?: string;
-  protocols?: Readonly<OcppProtocolVersion[]>;
+  protocols?: Readonly<ProtocolVersion[]>;
   basicAuth?: boolean;
   certificateAuth?: boolean;
   schemaValidation?: boolean;
-  schemaDir?: Map<OcppProtocolVersion[], string>;
+  schemaDir?: Map<ProtocolVersion[], string>;
 };
 
-class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
-  protected wsServer: WSServer;
+class WsEndpoint extends OcppEndpoint<WsOptions> {
+  protected wsServer: WsServer;
   protected requestSchemas: Map<OcppAction, Record<string, any>>;
   protected responseSchemas: Map<OcppAction, Record<string, any>>;
 
   constructor(
-    config: WebSocketConfig,
-    authenticationHandlers: OcppAuthenticationHandler[],
-    inboundMessageHandlers: InboundOcppMessageHandler[],
-    outboundMessageHandlers?: OutboundOcppMessageHandler[],
-    sessionService?: OcppSessionService,
+    options: WsOptions,
+    authenticationHandlers: AuthenticationHandler[],
+    inboundMessageHandlers: InboundMessageHandler[],
+    outboundMessageHandlers?: OutboundMessageHandler[],
+    sessionService?: SessionService,
     logger?: Logger
   ) {
     super(
-      config,
+      options,
       authenticationHandlers,
       inboundMessageHandlers,
       outboundMessageHandlers,
       sessionService,
       logger
     );
-    this.wsServer = new WSServer(this.config.wsOptions);
+    this.wsServer = new WsServer(this.options.wsServerOptions);
     this.httpServer.on('upgrade', this.onHttpUpgrade);
     this.wsServer.on('connection', this.onWsConnected);
 
@@ -83,13 +65,12 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.responseSchemas = new Map();
   }
 
-  protected get defaultConfig() {
+  protected get defaultOptions() {
     const schemaBase = path.join(__dirname, '../../../var/jsonschema');
 
-    const config: WebSocketConfig = {
-      wsOptions: { noServer: true },
+    const options: WsOptions = {
       route: 'ocpp',
-      protocols: OcppProtocolVersions,
+      protocols: ProtocolVersions,
       basicAuth: true,
       certificateAuth: true,
       schemaValidation: true,
@@ -99,29 +80,30 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         // OCPP >= 2.0    /var/jsonschema/ocpp2.0.1
         [['ocpp2.0', 'ocpp2.0.1'], path.join(schemaBase, 'ocpp2.0.1')],
       ]),
+      wsServerOptions: { noServer: true },
     };
 
-    return merge(super.defaultConfig, config);
+    return merge(super.defaultOptions, options);
   }
 
   protected get sendMessageHandler() {
-    const handleSend = async (message: OutboundOcppMessage) => {
+    const handleSend = async (message: OutboundMessage) => {
       const ws = this.getSocket(message.recipient.id);
       const session = await this.sessionService.get(message.recipient.id);
 
       const messageArr: any[] = [message.type, message.id];
-      if (message instanceof OutboundOcppCall) {
+      if (message instanceof OutboundCall) {
         messageArr.push(message.action, message.data);
-      } else if (message instanceof OutboundOcppCallResult) {
+      } else if (message instanceof OutboundCallResult) {
         messageArr.push(message.data);
-      } else if (message instanceof OutboundOcppCallError) {
+      } else if (message instanceof OutboundCallError) {
         messageArr.push(message.code, message.description, message.details);
       }
 
       if (
-        this.config.schemaValidation &&
-        (message instanceof OutboundOcppCall ||
-          message instanceof OutboundOcppCallResult)
+        this.options.schemaValidation &&
+        (message instanceof OutboundCall ||
+          message instanceof OutboundCallResult)
       ) {
         const dateToString = (key: string, value: string) => value;
         const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
@@ -130,19 +112,19 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
           message.type,
           message.action || session.pendingInboundMessage.action,
           rawData,
-          ws.protocol as OcppProtocolVersion
+          ws.protocol as ProtocolVersion
         );
 
         if (!messageValidation?.valid) {
           this.logger.warn(
-            oneLine`Outbound ${OcppMessageType[message.type]}
+            oneLine`Outbound ${MessageType[message.type]}
             message payload is not valid`
           );
           this.logger.trace(messageValidation.errors);
           return;
         } else {
           this.logger.debug(
-            `Outbound ${OcppMessageType[message.type]} message payload is valid`
+            `Outbound ${MessageType[message.type]} message payload is valid`
           );
         }
       }
@@ -150,12 +132,12 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       ws.send(JSON.stringify(messageArr));
     };
 
-    return new (class extends OutboundOcppMessageHandler {
-      async handle(message: OutboundOcppMessage) {
+    return new (class extends OutboundMessageHandler {
+      async handle(message: OutboundMessage) {
         await handleSend(message);
         return await super.handle(message);
       }
-    })() as OutboundOcppMessageHandler;
+    })() as OutboundMessageHandler;
   }
 
   public hasSession(clientId: string) {
@@ -191,7 +173,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   }
 
   protected onHttpUpgrade = (
-    request: HTTPRequest,
+    request: HttpRequest,
     socket: Duplex,
     head: Buffer
   ) => {
@@ -206,8 +188,8 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
     const { id, password, protocols } = requestProperties;
 
-    const authRequest = new (class extends OcppAuthenticationRequest {
-      client = new OcppClient(id);
+    const authRequest = new (class extends AuthenticationRequest {
+      client = new Client(id);
       protocols = protocols;
       password = password ?? undefined;
 
@@ -222,7 +204,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       }
     })();
 
-    const onAccept = async (protocol: OcppProtocolVersion) => {
+    const onAccept = async (protocol: ProtocolVersion) => {
       this.logger.debug(
         `Upgrading WebSocket connection with subprotocol: ${protocol}`
       );
@@ -261,25 +243,25 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     this.onAuthenticationAttempt(authRequest);
   };
 
-  protected parseUpgradeRequest(request: HTTPRequest) {
+  protected parseUpgradeRequest(request: HttpRequest) {
     const requestPath = path.parse(request.url);
     const clientId = requestPath.base;
 
-    const basicCredentials = this.config.basicAuth
+    const basicCredentials = this.options.basicAuth
       ? basicAuth(request)
       : undefined;
 
     const clientProtocols =
       request.headers['sec-websocket-protocol']?.split(',');
 
-    const supportedProtocols = this.config.protocols.filter(protocol =>
+    const supportedProtocols = this.options.protocols.filter(protocol =>
       clientProtocols?.includes(protocol)
-    ) as OcppProtocolVersion[];
+    ) as ProtocolVersion[];
 
     const trimSlashesRegex = /^\/+|\/+$/g;
     if (
       requestPath.dir.replaceAll(trimSlashesRegex, '') !==
-      this.config.route.replaceAll(trimSlashesRegex, '')
+      this.options.route.replaceAll(trimSlashesRegex, '')
     ) {
       throw new Error(
         oneLine`Client with id ${clientId} attempted
@@ -296,12 +278,12 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         attempted authentication with unsupported WebSocket
         subprotocol(s): ${clientProtocols}`
       );
-    } else if (this.config.basicAuth && !basicCredentials) {
+    } else if (this.options.basicAuth && !basicCredentials) {
       throw new Error(
         oneLine`Client with id ${clientId} attempted
         authentication without supplying BASIC credentials`
       );
-    } else if (this.config.basicAuth && basicCredentials.name !== clientId) {
+    } else if (this.options.basicAuth && basicCredentials.name !== clientId) {
       throw new Error(
         oneLine`Client attempted authentication with
         mismatching ids ${clientId} in request path and
@@ -318,8 +300,8 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
 
   protected onWsConnected = (
     ws: WebSocket,
-    request: HTTPRequest,
-    client: OcppClient
+    request: HttpRequest,
+    client: Client
   ) => {
     ws.on('message', async (data, isBinary) => {
       if (isBinary) {
@@ -340,7 +322,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
         );
         this.logger.trace(err.stack);
 
-        const errorResponse = new OutboundOcppCallError(
+        const errorResponse = new OutboundCallError(
           client,
           randomBytes(16).toString('hex'),
           'ProtocolError',
@@ -363,37 +345,37 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       } = messageProperties;
 
       if (
-        this.config.schemaValidation &&
-        (type === OcppMessageType.CALL || type === OcppMessageType.CALLRESULT)
+        this.options.schemaValidation &&
+        (type === MessageType.CALL || type === MessageType.CALLRESULT)
       ) {
         const messageValidation = await this.validateSchema(
           type,
           action,
           payload,
-          ws.protocol as OcppProtocolVersion
+          ws.protocol as ProtocolVersion
         );
 
         if (!messageValidation?.valid) {
           this.logger.warn(
-            `Inbound ${OcppMessageType[type]} message payload is not valid`
+            `Inbound ${MessageType[type]} message payload is not valid`
           );
           this.logger.trace(messageValidation.errors);
           return;
         } else {
           this.logger.debug(
-            `Inbound ${OcppMessageType[type]} message payload is valid`
+            `Inbound ${MessageType[type]} message payload is valid`
           );
         }
       }
 
-      const responseHandler = async (response: OutboundOcppMessage) => {
+      const responseHandler = async (response: OutboundMessage) => {
         await this.sendMessage(response);
       };
 
-      let message: InboundOcppMessage;
+      let message: InboundMessage;
       switch (type) {
-        case OcppMessageType.CALL:
-          message = new InboundOcppCall(
+        case MessageType.CALL:
+          message = new InboundCall(
             client,
             id,
             action,
@@ -402,12 +384,12 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
           );
           break;
 
-        case OcppMessageType.CALLRESULT:
-          message = new InboundOcppCallResult(client, id, payload);
+        case MessageType.CALLRESULT:
+          message = new InboundCallResult(client, id, payload);
           break;
 
-        case OcppMessageType.CALLERROR:
-          message = new InboundOcppCallError(
+        case MessageType.CALLERROR:
+          message = new InboundCallError(
             client,
             id,
             errorCode,
@@ -444,14 +426,14 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
     const type: number = message[0];
     if (
       typeof type !== 'number' ||
-      !Object.values(OcppMessageType).includes(type)
+      !Object.values(MessageType).includes(type)
     ) {
       throw new Error('Missing or invalid type field');
     }
 
-    const isCallMessage = type === OcppMessageType.CALL;
-    const isCallResultMessage = type === OcppMessageType.CALLRESULT;
-    const isCallErrorMessage = type === OcppMessageType.CALLERROR;
+    const isCallMessage = type === MessageType.CALL;
+    const isCallResultMessage = type === MessageType.CALLRESULT;
+    const isCallErrorMessage = type === MessageType.CALLERROR;
 
     const id: string = message[1];
     if (typeof id !== 'string') {
@@ -473,7 +455,7 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
       throw new Error('Missing or invalid error code or description field');
     }
 
-    const payload: OcppMessagePayload = isCallMessage
+    const payload: Payload = isCallMessage
       ? message[3]
       : isCallResultMessage
       ? message[2]
@@ -491,22 +473,22 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   }
 
   protected async validateSchema(
-    type: OcppMessageType.CALL | OcppMessageType.CALLRESULT,
+    type: MessageType.CALL | MessageType.CALLRESULT,
     action: OcppAction,
-    payload: OcppMessagePayload,
-    protocol: OcppProtocolVersion
+    payload: Payload,
+    protocol: ProtocolVersion
   ) {
     let schema: Record<string, any>;
     let schemaType: 'request' | 'response';
     let schemaMap: Map<OcppAction, Record<string, any>>;
 
     switch (type) {
-      case OcppMessageType.CALL:
+      case MessageType.CALL:
         schemaType = 'request';
         schemaMap = this.requestSchemas;
         break;
 
-      case OcppMessageType.CALLRESULT:
+      case MessageType.CALLRESULT:
         schemaType = 'response';
         schemaMap = this.responseSchemas;
         break;
@@ -525,10 +507,10 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   protected async loadSchema(
     type: 'request' | 'response',
     action: OcppAction,
-    protocol: OcppProtocolVersion
+    protocol: ProtocolVersion
   ) {
     let schemaDir: string;
-    this.config.schemaDir.forEach((dir, protocols) => {
+    this.options.schemaDir.forEach((dir, protocols) => {
       if (protocols.includes(protocol)) {
         schemaDir = dir;
       }
@@ -566,5 +548,5 @@ class WebSocketEndpoint extends OcppEndpoint<WebSocketConfig> {
   }
 }
 
-export default WebSocketEndpoint;
-export { WebSocketConfig };
+export default WsEndpoint;
+export { WsOptions };

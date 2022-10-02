@@ -1,11 +1,11 @@
-import OcppSession, { OcppSessionService } from '../OcppSession';
+import Session, { SessionService } from '../session';
 
-class LocalSessionService implements OcppSessionService {
-  private sessions: Map<string, OcppSession>;
+class LocalSessionService implements SessionService {
+  private sessions: Map<string, Session>;
 
   async create() {
     if (!this.sessions) {
-      this.sessions = new Map<string, OcppSession>();
+      this.sessions = new Map<string, Session>();
     }
   }
 
@@ -17,7 +17,7 @@ class LocalSessionService implements OcppSessionService {
     return this.sessions.size;
   }
 
-  async add(sesion: OcppSession) {
+  async add(sesion: Session) {
     if (await this.has(sesion.client.id)) {
       throw new Error(
         `Session for client with id ${sesion.client.id} already exists`
@@ -35,7 +35,7 @@ class LocalSessionService implements OcppSessionService {
     return this.sessions.get(clientId) || null;
   }
 
-  async update(clientId: string, session: OcppSession) {
+  async update(clientId: string, session: Session) {
     if (await !this.has(clientId)) {
       throw new Error(`No session for client with id ${clientId} exists`);
     }

@@ -1,15 +1,14 @@
-import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { OutboundCall } from '../../../../common/call';
+import { InboundCallResult } from '../../../../common/callresult';
 
-declare type ClearCacheRequest = OutboundOcppCall<
+declare type ClearCacheRequest = OutboundCall<
   'ClearCache',
   null,
   ClearCacheResponsePayload,
   ClearCacheResponse
 >;
 
-declare type ClearCacheResponse =
-  InboundOcppCallResult<ClearCacheResponsePayload>;
+declare type ClearCacheResponse = InboundCallResult<ClearCacheResponsePayload>;
 
 declare type ClearCacheResponsePayload = {
   status: ClearCacheStatus;

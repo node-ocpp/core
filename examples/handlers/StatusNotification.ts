@@ -1,14 +1,14 @@
-import { OutboundOcppCallResult } from '../../src/common/OcppCallResultMessage';
-import { InboundOcppMessageHandler } from '../../src/common/OcppHandlers';
+import { OutboundCallResult } from '../../src/common/callresult';
+import { InboundMessageHandler } from '../../src/common/handler';
 import { StatusNotificationRequest } from '../../src/types/ocpp/1.6/messages/StatusNotification';
 
-class StatusNotificationHandler extends InboundOcppMessageHandler {
+class StatusNotificationHandler extends InboundMessageHandler {
   async handle(message: StatusNotificationRequest) {
     if (message.action !== 'StatusNotification') {
       return await super.handle(message);
     }
 
-    message.respond(new OutboundOcppCallResult(message.sender, message.id, {}));
+    message.respond(new OutboundCallResult(message.sender, message.id, {}));
     return await super.handle(message);
   }
 }

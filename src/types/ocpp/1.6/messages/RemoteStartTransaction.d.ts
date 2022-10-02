@@ -1,10 +1,10 @@
-import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { OutboundCall } from '../../../../common/call';
+import { InboundCallResult } from '../../../../common/callresult';
 import IdToken from '../structs/IdToken';
 import ChargingProfile from '../structs/ChargingProfile';
 import RemoteStartStopStatus from '../structs/RemoteStartStopStatus';
 
-declare type RemoteStartTransactionRequest = OutboundOcppCall<
+declare type RemoteStartTransactionRequest = OutboundCall<
   'RemoteStartTransaction',
   RemoteStartTransactionRequestPayload,
   RemoteStartTransactionResponsePayload,
@@ -18,7 +18,7 @@ declare type RemoteStartTransactionRequestPayload = {
 };
 
 declare type RemoteStartTransactionResponse =
-  InboundOcppCallResult<RemoteStartTransactionResponsePayload>;
+  InboundCallResult<RemoteStartTransactionResponsePayload>;
 
 declare type RemoteStartTransactionResponsePayload = {
   status: RemoteStartStopStatus;

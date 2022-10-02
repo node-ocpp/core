@@ -1,22 +1,19 @@
-import { AsyncHandler } from './util/Handler';
-import { OcppClient } from './OcppSession';
-import OcppMessage, {
-  InboundOcppMessage,
-  OutboundOcppMessage,
-} from './OcppMessage';
-import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
+import { AsyncHandler } from './util/handler';
+import { Client } from './session';
+import OcppMessage, { InboundMessage, OutboundMessage } from './message';
+import ProtocolVersion from '../types/ocpp/version';
 
-abstract class OcppAuthenticationHandler<
-  TRequest extends OcppAuthenticationRequest = OcppAuthenticationRequest
+abstract class AuthenticationHandler<
+  TRequest extends AuthenticationRequest = AuthenticationRequest
 > extends AsyncHandler<TRequest> {}
 
-abstract class OcppAuthenticationRequest {
+abstract class AuthenticationRequest {
   private _accepted: boolean;
   private _rejected: boolean;
-  private _protocol: OcppProtocolVersion;
+  private _protocol: ProtocolVersion;
 
-  readonly client: OcppClient;
-  readonly protocols: OcppProtocolVersion[];
+  readonly client: Client;
+  readonly protocols: ProtocolVersion[];
   readonly password?: string;
   readonly certificate?: unknown;
 
@@ -24,7 +21,7 @@ abstract class OcppAuthenticationRequest {
     this._accepted = this._rejected = false;
   }
 
-  accept(protocol: OcppProtocolVersion = this.protocols[0]) {
+  accept(protocol: ProtocolVersion = this.protocols[0]) {
     if (this.isAccepted || this.isRejected) {
       throw new Error(
         `accept() was called but authentication attempt from
@@ -66,23 +63,23 @@ abstract class OcppMessageHandler<
   TMessage extends OcppMessage = OcppMessage
 > extends AsyncHandler<TMessage> {}
 
-abstract class InboundOcppMessageHandler<
-  TMessage extends InboundOcppMessage = InboundOcppMessage
+abstract class InboundMessageHandler<
+  TMessage extends InboundMessage = InboundMessage
 > extends OcppMessageHandler<TMessage> {}
 
-abstract class OutboundOcppMessageHandler<
-  TMessage extends OutboundOcppMessage = OutboundOcppMessage
+abstract class OutboundMessageHandler<
+  TMessage extends OutboundMessage = OutboundMessage
 > extends OcppMessageHandler<TMessage> {}
 
-type ResponseHandler<TResponse extends OutboundOcppMessage> = (
+type ResponseHandler<TResponse extends OutboundMessage> = (
   response: TResponse
 ) => Promise<void>;
 
 export {
   AsyncHandler,
-  OcppAuthenticationHandler,
-  OcppAuthenticationRequest,
-  InboundOcppMessageHandler,
-  OutboundOcppMessageHandler,
+  AuthenticationHandler,
+  AuthenticationRequest,
+  InboundMessageHandler,
+  OutboundMessageHandler,
   ResponseHandler,
 };
