@@ -1,5 +1,5 @@
-export { default as SessionExistsHandler } from './SessionExistsHandler';
+export { default as SessionExistsHandler } from './session-exists';
 
-export * from './ActionsAllowedHandler';
-export * from './MessageSynchronicityHandler';
-export * from './PendingMessageHandler';
+export * from './actions-allowed';
+export * from './message-sync';
+export * from './pending-message';

@@ -1,7 +1,7 @@
-import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { OutboundCall } from '../../../../common/call';
+import { InboundCallResult } from '../../../../common/callresult';
 
-declare type UnlockConnectorRequest = OutboundOcppCall<
+declare type UnlockConnectorRequest = OutboundCall<
   'UnlockConnector',
   UnlockConnectorRequestPayload,
   UnlockConnectorResponsePayload,
@@ -13,7 +13,7 @@ declare type UnlockConnectorRequestPayload = {
 };
 
 declare type UnlockConnectorResponse =
-  InboundOcppCallResult<UnlockConnectorResponsePayload>;
+  InboundCallResult<UnlockConnectorResponsePayload>;
 
 declare type UnlockConnectorResponsePayload = {
   status: UnlockStatus;

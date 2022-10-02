@@ -1,8 +1,8 @@
-import { InboundOcppCall } from '../../../../common/OcppCallMessage';
-import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { InboundCall } from '../../../../common/call';
+import { OutboundCallResult } from '../../../../common/callresult';
 import IdTagInfo from '../structs/IdTagInfo';
 
-declare type AuthorizeRequest = InboundOcppCall<
+declare type AuthorizeRequest = InboundCall<
   'Authorize',
   AuthorizeRequestPayload,
   AuthorizeResponsePayload,
@@ -13,8 +13,7 @@ declare type AuthorizeRequestPayload = {
   idTag: string;
 };
 
-declare type AuthorizeResponse =
-  OutboundOcppCallResult<AuthorizeResponsePayload>;
+declare type AuthorizeResponse = OutboundCallResult<AuthorizeResponsePayload>;
 
 declare type AuthorizeResponsePayload = {
   idTagInfo: IdTagInfo;

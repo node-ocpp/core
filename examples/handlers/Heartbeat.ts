@@ -1,15 +1,15 @@
-import { OutboundOcppCallResult } from '../../src/common/OcppCallResultMessage';
-import { InboundOcppMessageHandler } from '../../src/common/OcppHandlers';
+import { OutboundCallResult } from '../../src/common/callresult';
+import { InboundMessageHandler } from '../../src/common/handler';
 import { HeartbeatRequest } from '../../src/types/ocpp/1.6/messages/Heartbeat';
 
-class HeartbeatHandler extends InboundOcppMessageHandler {
+class HeartbeatHandler extends InboundMessageHandler {
   async handle(message: HeartbeatRequest) {
     if (message.action !== 'Heartbeat') {
       return await super.handle(message);
     }
 
     message.respond(
-      new OutboundOcppCallResult(message.sender, message.id, {
+      new OutboundCallResult(message.sender, message.id, {
         currentTime: new Date(),
       })
     );

@@ -1,9 +1,9 @@
-import { InboundOcppCall } from '../../../../common/OcppCallMessage';
-import { OutboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { InboundCall } from '../../../../common/call';
+import { OutboundCallResult } from '../../../../common/callresult';
 import IdToken from '../structs/IdToken';
 import IdTagInfo from '../structs/IdTagInfo';
 
-declare type StartTransactionRequest = InboundOcppCall<
+declare type StartTransactionRequest = InboundCall<
   'StartTransaction',
   StartTransactionRequestPayload,
   StartTransactionResponsePayload,
@@ -19,7 +19,7 @@ declare type StartTransactionRequestPayload = {
 };
 
 declare type StartTransactionResponse =
-  OutboundOcppCallResult<StartTransactionResponsePayload>;
+  OutboundCallResult<StartTransactionResponsePayload>;
 
 declare type StartTransactionResponsePayload = {
   idTagInfo: IdTagInfo;

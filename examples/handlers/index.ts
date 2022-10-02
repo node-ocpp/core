@@ -1,9 +1,9 @@
-export { default as AuthenticationHandler } from './AuthenticationHandler';
+export { default as BasicAuthHandler } from './basic-auth';
 
-export { default as AuthorizeHandler } from './AuthorizeHandler';
-export { default as BootNotificationHandler } from './BootNotificationHandler';
-export { default as HeartbeatHandler } from './HeartbeatHandler';
-export { default as MeterValuesHandler } from './MeterValuesHandler';
-export { default as StartTransactionHandler } from './StartTransactionHandler';
-export { default as StatusNotificationHandler } from './StatusNotificationHandler';
-export { default as StopTransactionHandler } from './StopTransactionHandler';
+export { default as AuthorizeHandler } from './Authorize';
+export { default as BootNotificationHandler } from './BootNotification';
+export { default as HeartbeatHandler } from './Heartbeat';
+export { default as MeterValuesHandler } from './MeterValues';
+export { default as StartTransactionHandler } from './StartTransaction';
+export { default as StatusNotificationHandler } from './StatusNotification';
+export { default as StopTransactionHandler } from './StopTransaction';

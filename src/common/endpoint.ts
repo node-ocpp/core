@@ -1,91 +1,83 @@
-import https, {
-  Server as HTTPSServer,
-  ServerOptions as HTTPSOptions,
-} from 'https';
-
-import http, { Server as HTTPServer, ServerOptions as HTTPOptions } from 'http';
+import http, { Server as HttpServer, ServerOptions } from 'http';
+import https from 'https';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 import merge from 'lodash.merge';
 
-import winstonLogger from './util/Logger';
-import OcppSession, { OcppClient, OcppSessionService } from './OcppSession';
-import LocalSessionService from './services/LocalSessionService';
-import OcppMessageType from '../types/ocpp/OcppMessageType';
-import { InboundOcppMessage, OutboundOcppMessage } from './OcppMessage';
-import { OutboundOcppCallError } from './OcppCallErrorMessage';
-import OcppAction, { OcppActions } from '../types/ocpp/OcppAction';
+import winstonLogger from './util/logger';
+import Session, { SessionService, Client } from './session';
+import LocalSessionService from './services/session-local';
 import * as Handlers from './handlers';
-
-import OcppProtocolVersion, {
-  OcppProtocolVersions,
-} from '../types/ocpp/OcppProtocolVersion';
-
+import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
+import OcppAction, { OcppActions } from '../types/ocpp/action';
+import MessageType from '../types/ocpp/type';
+import { InboundMessage, OutboundMessage } from './message';
+import { OutboundCallError } from './callerror';
 import {
   AsyncHandler,
-  OcppAuthenticationHandler,
-  OcppAuthenticationRequest,
-  InboundOcppMessageHandler,
-  OutboundOcppMessageHandler,
-} from './OcppHandlers';
+  AuthenticationHandler,
+  AuthenticationRequest,
+  InboundMessageHandler,
+  OutboundMessageHandler,
+} from './handler';
 
-type OcppEndpointConfig = {
+type EndpointOptions = {
   port?: number;
   hostname?: string;
   https?: boolean;
-  httpOptions?: HTTPOptions | HTTPSOptions;
-  protocols?: Readonly<OcppProtocolVersion[]>;
+  protocols?: Readonly<ProtocolVersion[]>;
   actionsAllowed?: Readonly<OcppAction[]>;
   maxConnections?: number;
   messageTimeout?: number;
   sessionTimeout?: number;
+  httpServerOptions?: ServerOptions;
 };
 
-type OcppEndpointEvents = {
-  server_starting: (config: OcppEndpointConfig) => void;
-  server_listening: (config: OcppEndpointConfig) => void;
+type EndpointEvents = {
+  server_starting: (config: EndpointOptions) => void;
+  server_listening: (config: EndpointOptions) => void;
   server_stopping: () => void;
   server_stopped: () => void;
-  client_connecting: (client: OcppClient) => void;
-  client_connected: (client: OcppClient) => void;
-  client_rejected: (client: OcppClient) => void;
-  client_disconnected: (client: OcppClient) => void;
-  message_sent: (message: OutboundOcppMessage) => void;
-  message_received: (message: InboundOcppMessage) => void;
+  client_connecting: (client: Client) => void;
+  client_connected: (client: Client) => void;
+  client_rejected: (client: Client) => void;
+  client_disconnected: (client: Client) => void;
+  message_sent: (message: OutboundMessage) => void;
+  message_received: (message: InboundMessage) => void;
 };
 
 abstract class OcppEndpoint<
-  TConfig extends OcppEndpointConfig
-> extends (EventEmitter as new () => TypedEmitter<OcppEndpointEvents>) {
-  protected _config: TConfig;
+  TConfig extends EndpointOptions
+> extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
+  protected _options: TConfig;
 
-  protected httpServer: HTTPServer | HTTPSServer;
-  protected sessionService: OcppSessionService;
+  protected httpServer: HttpServer;
+  protected sessionService: SessionService;
   protected logger: Logger;
-  protected authenticationHandlers: OcppAuthenticationHandler[];
-  protected inboundMessageHandlers: InboundOcppMessageHandler[];
-  protected outboundMessageHandlers: OutboundOcppMessageHandler[];
+  protected authenticationHandlers: AuthenticationHandler[];
+  protected inboundMessageHandlers: InboundMessageHandler[];
+  protected outboundMessageHandlers: OutboundMessageHandler[];
 
   protected abstract hasSession(clientId: string): boolean;
   protected abstract dropSession(clientId: string): void;
-  protected abstract get sendMessageHandler(): OutboundOcppMessageHandler;
+  protected abstract get sendMessageHandler(): OutboundMessageHandler;
 
   constructor(
-    config: TConfig,
-    authenticationHandlers: OcppAuthenticationHandler[],
-    inboundMessageHandlers: InboundOcppMessageHandler[],
-    outboundMessageHandlers: OutboundOcppMessageHandler[] = [],
-    sessionService: OcppSessionService = new LocalSessionService(),
+    options: TConfig,
+    authenticationHandlers: AuthenticationHandler[],
+    inboundMessageHandlers: InboundMessageHandler[],
+    outboundMessageHandlers: OutboundMessageHandler[] = [],
+    sessionService: SessionService = new LocalSessionService(),
     logger: Logger = winstonLogger
   ) {
     super();
-    this._config = merge(this.defaultConfig, config);
+    this._options = merge(this.defaultOptions, options);
 
-    this.httpServer = this.config.https
-      ? https.createServer(this.config.httpOptions)
-      : http.createServer(this.config.httpOptions);
+    this.httpServer = this.options.https
+      ? https.createServer(this.options.httpServerOptions)
+      : http.createServer(this.options.httpServerOptions);
     this.httpServer.on('error', this.onHttpError);
 
     this.sessionService = sessionService;
@@ -112,47 +104,43 @@ abstract class OcppEndpoint<
     ]);
   }
 
-  protected get defaultHttpOptions() {
-    return {} as HTTPOptions;
-  }
-
-  protected get defaultConfig() {
+  protected get defaultOptions() {
     return {
       port: process.env.NODE_ENV === 'development' ? 8080 : 80,
       hostname: 'localhost',
-      httpOptions: this.defaultHttpOptions,
-      protocols: OcppProtocolVersions,
+      protocols: ProtocolVersions,
       actionsAllowed: OcppActions,
       maxConnections: 511,
       messageTimeout: 30000,
       sessionTimeout: 60000,
-    } as OcppEndpointConfig;
+      httpServerOptions: {},
+    } as EndpointOptions;
   }
 
   protected get defaultHandlers() {
     return {
       authentication: {
-        prefix: <OcppAuthenticationHandler[]>[
+        prefix: <AuthenticationHandler[]>[
           new Handlers.SessionExistsHandler(this.sessionService, this.logger),
         ],
-        suffix: <OcppAuthenticationHandler[]>[],
+        suffix: <AuthenticationHandler[]>[],
       },
       inboundMessage: {
         prefix: [
-          new Handlers.InboundActionsAllowedHandler(this.config, this.logger),
+          new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
           new Handlers.InboundMessageSynchronicityHandler(
             this.sessionService,
             this.logger
           ),
           new Handlers.InboundPendingMessageHandler(this.sessionService),
         ],
-        suffix: <InboundOcppMessageHandler[]>[],
+        suffix: <InboundMessageHandler[]>[],
       },
       outboundMessage: {
         prefix: [
-          new Handlers.OutboundActionsAllowedHandler(this.config, this.logger),
+          new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
         ],
-        suffix: <OutboundOcppMessageHandler[]>[
+        suffix: <OutboundMessageHandler[]>[
           this.sendMessageHandler,
           new Handlers.OutboundPendingMessageHandler(this.sessionService),
         ],
@@ -160,8 +148,8 @@ abstract class OcppEndpoint<
     };
   }
 
-  public get config() {
-    return this._config;
+  public get options() {
+    return this._options;
   }
 
   public get isListening() {
@@ -177,19 +165,19 @@ abstract class OcppEndpoint<
       return;
     }
 
-    this.logger.info('Starting endpoint', this.config);
-    this.emit('server_starting', this.config);
+    this.logger.info('Starting endpoint', this.options);
+    this.emit('server_starting', this.options);
 
     this.httpServer.listen(
-      this.config.port,
-      this.config.hostname,
-      this.config.maxConnections,
+      this.options.port,
+      this.options.hostname,
+      this.options.maxConnections,
       () => {
         this.logger.info(
-          `Endpoint is listening on port ${this.config.port}`,
-          this.config
+          `Endpoint is listening on port ${this.options.port}`,
+          this.options
         );
-        this.emit('server_listening', this.config);
+        this.emit('server_listening', this.options);
       }
     );
   }
@@ -219,7 +207,7 @@ abstract class OcppEndpoint<
     console.dir(process.env);
   }
 
-  protected async sendMessage(message: OutboundOcppMessage) {
+  protected async sendMessage(message: OutboundMessage) {
     if (!this.isListening) {
       this.logger.warn(
         oneLine`sendMessage() was called but endpoint is
@@ -237,7 +225,7 @@ abstract class OcppEndpoint<
     }
 
     this.logger.debug(
-      oneLine`Sending ${OcppMessageType[message.type]}
+      oneLine`Sending ${MessageType[message.type]}
       to client with id ${message.recipient.id}`
     );
     this.logger.trace(message);
@@ -246,7 +234,7 @@ abstract class OcppEndpoint<
     message.setSent();
 
     this.logger.debug(
-      oneLine`${OcppMessageType[message.type]} message to
+      oneLine`${MessageType[message.type]} message to
       client with id ${message.recipient.id} was sent`
     );
     this.emit('message_sent', message);
@@ -257,7 +245,7 @@ abstract class OcppEndpoint<
     this.logger.trace(err.stack);
   };
 
-  protected async onAuthenticationAttempt(request: OcppAuthenticationRequest) {
+  protected async onAuthenticationAttempt(request: AuthenticationRequest) {
     this.logger.debug(
       `Client with id ${request.client.id} attempting authentication`
     );
@@ -266,14 +254,14 @@ abstract class OcppEndpoint<
     await this.authenticationHandlers[0].handle(request);
   }
 
-  protected onAuthenticationFailure(request: OcppAuthenticationRequest) {
+  protected onAuthenticationFailure(request: AuthenticationRequest) {
     this.logger.warn(
       `Client with id ${request.client.id} failed to authenticate`
     );
     this.emit('client_rejected', request.client);
   }
 
-  protected async onAuthenticationSuccess(request: OcppAuthenticationRequest) {
+  protected async onAuthenticationSuccess(request: AuthenticationRequest) {
     if (await this.hasSession(request.client.id)) {
       this.logger.warn(
         oneLine`onAuthenticationSuccess() was called but client
@@ -282,7 +270,7 @@ abstract class OcppEndpoint<
       return;
     }
 
-    const session = new OcppSession(
+    const session = new Session(
       request.client,
       request.protocol,
       () => this.hasSession(request.client.id),
@@ -308,12 +296,12 @@ abstract class OcppEndpoint<
     await this.sessionService.remove(clientId);
 
     this.logger.info(`Client with id ${clientId} disconnected`);
-    this.emit('client_disconnected', new OcppClient(clientId));
+    this.emit('client_disconnected', new Client(clientId));
   }
 
-  protected async onInboundMessage(message: InboundOcppMessage) {
+  protected async onInboundMessage(message: InboundMessage) {
     this.logger.debug(
-      oneLine`Received ${OcppMessageType[message.type]}
+      oneLine`Received ${MessageType[message.type]}
       message from client with id ${message.sender.id}`
     );
     this.logger.trace(message);
@@ -322,12 +310,12 @@ abstract class OcppEndpoint<
     try {
       await this.inboundMessageHandlers[0].handle(message);
     } catch (err: any) {
-      if (err instanceof OutboundOcppCallError) {
+      if (err instanceof OutboundCallError) {
         await this.sendMessage(err);
       } else {
         this.logger.error(
           `Error occured while handling inbound
-          ${OcppMessageType[message.type]} message`
+          ${MessageType[message.type]} message`
         );
         this.logger.trace(err.stack);
       }
@@ -336,4 +324,4 @@ abstract class OcppEndpoint<
 }
 
 export default OcppEndpoint;
-export { OcppEndpointEvents, OcppEndpointConfig };
+export { EndpointEvents, EndpointOptions };

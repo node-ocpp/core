@@ -1,7 +1,7 @@
-import { OutboundOcppCall } from '../../../../common/OcppCallMessage';
-import { InboundOcppCallResult } from '../../../../common/OcppCallResultMessage';
+import { OutboundCall } from '../../../../common/call';
+import { InboundCallResult } from '../../../../common/callresult';
 
-declare type ChangeAvailabilityRequest = OutboundOcppCall<
+declare type ChangeAvailabilityRequest = OutboundCall<
   'ChangeAvailability',
   ChangeAvailabilityRequestPayload,
   ChangeAvailabilityResponsePayload,
@@ -16,7 +16,7 @@ declare type ChangeAvailabilityRequestPayload = {
 declare type AvailabilityType = 'Inoperative' | 'Operative';
 
 declare type ChangeAvailabilityResponse =
-  InboundOcppCallResult<ChangeAvailabilityResponsePayload>;
+  InboundCallResult<ChangeAvailabilityResponsePayload>;
 
 declare type ChangeAvailabilityResponsePayload = {
   status: AvailabilityStatus;

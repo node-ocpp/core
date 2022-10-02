@@ -1,18 +1,18 @@
-import { InboundOcppCall, OutboundOcppCall } from './OcppCallMessage';
-import OcppProtocolVersion from '../types/ocpp/OcppProtocolVersion';
+import ProtocolVersion from '../types/ocpp/version';
+import { InboundCall, OutboundCall } from './call';
 
-class OcppSession {
+class Session {
   private _isActiveHandler: () => boolean;
   private _dropHandler: () => void;
 
-  readonly client: OcppClient;
-  readonly protocol: OcppProtocolVersion;
-  pendingInboundMessage?: InboundOcppCall;
-  pendingOutboundMessage?: OutboundOcppCall;
+  readonly client: Client;
+  readonly protocol: ProtocolVersion;
+  pendingInboundMessage?: InboundCall;
+  pendingOutboundMessage?: OutboundCall;
 
   constructor(
-    client: OcppClient,
-    protocol: OcppProtocolVersion,
+    client: Client,
+    protocol: ProtocolVersion,
     isActiveHandler?: () => boolean,
     dropHandler?: () => void
   ) {
@@ -47,7 +47,7 @@ class OcppSession {
   }
 }
 
-class OcppClient {
+class Client {
   readonly id: string;
 
   constructor(id: string) {
@@ -55,16 +55,16 @@ class OcppClient {
   }
 }
 
-interface OcppSessionService {
+interface SessionService {
   create(): Promise<void>;
   destroy(): Promise<void>;
   count(): Promise<number>;
-  add(sesion: OcppSession): Promise<void>;
+  add(sesion: Session): Promise<void>;
   has(clientId: string): Promise<boolean>;
-  get(clientId: string): Promise<OcppSession | null>;
-  update(clientId: string, session: OcppSession): Promise<void>;
+  get(clientId: string): Promise<Session | null>;
+  update(clientId: string, session: Session): Promise<void>;
   remove(clientId: string): Promise<void>;
 }
 
-export default OcppSession;
-export { OcppClient, OcppSessionService };
+export default Session;
+export { Client, SessionService };

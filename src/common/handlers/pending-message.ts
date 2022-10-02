@@ -1,25 +1,22 @@
-import {
-  InboundOcppMessageHandler,
-  OutboundOcppMessageHandler,
-} from '../OcppHandlers';
-import { OcppSessionService } from '../OcppSession';
-import { InboundOcppMessage, OutboundOcppMessage } from '../OcppMessage';
-import { InboundOcppCall, OutboundOcppCall } from '../OcppCallMessage';
+import { SessionService } from '../session';
+import { InboundMessage, OutboundMessage } from '../message';
+import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
+import { InboundCall, OutboundCall } from '../call';
 
-class InboundPendingMessageHandler extends InboundOcppMessageHandler {
+class InboundPendingMessageHandler extends InboundMessageHandler {
   private sessionService;
 
-  constructor(sessionService: OcppSessionService) {
+  constructor(sessionService: SessionService) {
     super();
     this.sessionService = sessionService;
     this.sessionService.create();
   }
 
-  async handle(message: InboundOcppMessage) {
+  async handle(message: InboundMessage) {
     const session = await this.sessionService.get(message.sender.id);
 
     if (
-      !(message instanceof InboundOcppCall) &&
+      !(message instanceof InboundCall) &&
       session.pendingOutboundMessage &&
       message.id === session.pendingOutboundMessage.id
     ) {
@@ -27,7 +24,7 @@ class InboundPendingMessageHandler extends InboundOcppMessageHandler {
       await this.sessionService.update(session.client.id, session);
     }
 
-    if (message instanceof InboundOcppCall && !session.pendingInboundMessage) {
+    if (message instanceof InboundCall && !session.pendingInboundMessage) {
       session.pendingInboundMessage = message;
       await this.sessionService.update(session.client.id, session);
     }
@@ -36,20 +33,20 @@ class InboundPendingMessageHandler extends InboundOcppMessageHandler {
   }
 }
 
-class OutboundPendingMessageHandler extends OutboundOcppMessageHandler {
+class OutboundPendingMessageHandler extends OutboundMessageHandler {
   private sessionService;
 
-  constructor(sessionService: OcppSessionService) {
+  constructor(sessionService: SessionService) {
     super();
     this.sessionService = sessionService;
     this.sessionService.create();
   }
 
-  async handle(message: OutboundOcppMessage) {
+  async handle(message: OutboundMessage) {
     const session = await this.sessionService.get(message.recipient.id);
 
     if (
-      !(message instanceof OutboundOcppCall) &&
+      !(message instanceof OutboundCall) &&
       session.pendingInboundMessage &&
       message.id === session.pendingInboundMessage.id
     ) {
@@ -57,10 +54,7 @@ class OutboundPendingMessageHandler extends OutboundOcppMessageHandler {
       await this.sessionService.update(session.client.id, session);
     }
 
-    if (
-      message instanceof OutboundOcppCall &&
-      !session.pendingOutboundMessage
-    ) {
+    if (message instanceof OutboundCall && !session.pendingOutboundMessage) {
       session.pendingOutboundMessage = message;
       await this.sessionService.update(session.client.id, session);
     }
