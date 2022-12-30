@@ -127,22 +127,22 @@ abstract class OcppEndpoint<
       },
       inboundMessage: {
         prefix: [
-          new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
           new Handlers.InboundMessageSynchronicityHandler(
             this.sessionService,
             this.logger
           ),
           new Handlers.InboundPendingMessageHandler(this.sessionService),
+          new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
         ],
         suffix: <InboundMessageHandler[]>[],
       },
       outboundMessage: {
         prefix: [
-          new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
           new Handlers.OutboundMessageSynchronicityHandler(
             this.sessionService,
             this.logger
           ),
+          new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
         ],
         suffix: <OutboundMessageHandler[]>[
           this.sendMessageHandler,
