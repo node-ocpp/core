@@ -56,7 +56,7 @@ class OutboundActionsAllowedHandler extends OutboundMessageHandler {
       !this.config.actionsAllowed.includes(message.action)
     ) {
       this.logger.warn(
-        oneLine`Attempted to send ${MessageType[message.type]}
+        oneLine`Attempting to send ${MessageType[message.type]}
         message with unsupported action: ${message.action}`
       );
       return;

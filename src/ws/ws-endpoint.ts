@@ -27,13 +27,13 @@ import {
 } from '../common/handler';
 
 type WsOptions = EndpointOptions & {
-  wsServerOptions?: ServerOptions;
   route?: string;
   protocols?: Readonly<ProtocolVersion[]>;
   basicAuth?: boolean;
   certificateAuth?: boolean;
   schemaValidation?: boolean;
   schemaDir?: Map<ProtocolVersion[], string>;
+  wsServerOptions?: ServerOptions;
 };
 
 class WsEndpoint extends OcppEndpoint<WsOptions> {
