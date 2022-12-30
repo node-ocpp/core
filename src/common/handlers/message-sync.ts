@@ -5,7 +5,7 @@ import MessageType from '../../types/ocpp/type';
 import { SessionService } from '../session';
 import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
 import { InboundMessage, OutboundMessage } from '../message';
-import { InboundCall } from '../call';
+import { InboundCall, OutboundCall } from '../call';
 import { OutboundCallError } from '../callerror';
 
 class InboundMessageSynchronicityHandler extends InboundMessageHandler {
@@ -42,7 +42,7 @@ class InboundMessageSynchronicityHandler extends InboundMessageHandler {
 
     /*
     Inbound CALLRESULT & CALLERROR messages from the client are only allowed
-    if the server has sent an outbound CALL message before.
+    if the endpoint has sent an outbound CALL message before.
     */
     if (!session.pendingOutboundMessage && !(message instanceof InboundCall)) {
       error = true;
@@ -54,7 +54,7 @@ class InboundMessageSynchronicityHandler extends InboundMessageHandler {
 
     /*
     The client must not send further CALL messages until the previous one
-    has been responded to by the server.
+    has been responded to by the endpoint.
     */
     if (session.pendingInboundMessage && message instanceof InboundCall) {
       error = true;
@@ -79,14 +79,57 @@ class InboundMessageSynchronicityHandler extends InboundMessageHandler {
 }
 
 class OutboundMessageSynchronicityHandler extends OutboundMessageHandler {
-  private _sessionService;
+  private sessionService;
+  private logger;
 
-  constructor(sessionService: SessionService) {
+  constructor(sessionService: SessionService, logger: Logger) {
     super();
-    this._sessionService = sessionService;
+    this.sessionService = sessionService;
+    this.logger = logger;
   }
 
   async handle(message: OutboundMessage) {
+    const session = await this.sessionService.get(message.recipient.id);
+
+    /*
+    If the client has sent an inbound CALL message, the endpoint must respond
+    with a CALLRESULT or CALLERROR with the same id as the inbound CALL.
+    An outbound CALL from the endpoint is possible even if no response for the
+    pending inbound CALL message has been sent yet.
+    */
+    if (
+      session.pendingInboundMessage &&
+      !(message instanceof OutboundCall) &&
+      message.id !== session.pendingInboundMessage.id
+    ) {
+      this.logger.warn(
+        oneLine`Attempting to send ${MessageType[message.type]} message
+        which is out of sync with pending inbound CALL message`
+      );
+    }
+
+    /*
+    Outbound CALLRESULT & CALLERROR messages from the endpoint are only allowed
+    if the client has sent an inbound CALL message before.
+    */
+    if (!session.pendingInboundMessage && !(message instanceof OutboundCall)) {
+      this.logger.warn(
+        oneLine`Attempting to send ${MessageType[message.type]} message
+        while there is no pending inbound CALL message`
+      );
+    }
+
+    /*
+    The endpoint must not send further CALL messages until the previous one
+    has been responded to by the client.
+    */
+    if (session.pendingOutboundMessage && message instanceof OutboundCall) {
+      this.logger.warn(
+        oneLine`Attempting to send CALL message while there
+        is already a pending outbound CALL message`
+      );
+    }
+
     return await super.handle(message);
   }
 }

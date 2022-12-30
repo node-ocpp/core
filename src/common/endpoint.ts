@@ -9,12 +9,12 @@ import merge from 'lodash.merge';
 import winstonLogger from './util/logger';
 import Session, { SessionService, Client } from './session';
 import LocalSessionService from './services/session-local';
-import * as Handlers from './handlers';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
 import { OutboundCallError } from './callerror';
+import * as Handlers from './handlers';
 import {
   AsyncHandler,
   AuthenticationHandler,
@@ -139,6 +139,10 @@ abstract class OcppEndpoint<
       outboundMessage: {
         prefix: [
           new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
+          new Handlers.OutboundMessageSynchronicityHandler(
+            this.sessionService,
+            this.logger
+          ),
         ],
         suffix: <OutboundMessageHandler[]>[
           this.sendMessageHandler,
