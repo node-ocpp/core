@@ -17,14 +17,8 @@ class LocalSessionService implements SessionService {
     return this.sessions.size;
   }
 
-  async add(sesion: Session) {
-    if (await this.has(sesion.client.id)) {
-      throw new Error(
-        `Session for client with id ${sesion.client.id} already exists`
-      );
-    }
-
-    this.sessions.set(sesion.client.id, sesion);
+  async add(session: Session) {
+    this.sessions.set(session.client.id, session);
   }
 
   async has(clientId: string) {
