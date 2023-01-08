@@ -14,7 +14,9 @@ class SessionExistsHandler extends AuthenticationHandler {
   }
 
   async handle(request: AuthenticationRequest) {
-    if (await this.sessionService.has(request.client.id)) {
+    const session = await this.sessionService.get(request.client.id);
+
+    if (session?.isActive) {
       this.logger.warn(
         `Client with id ${request.client.id} is already connected`
       );
