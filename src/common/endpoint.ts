@@ -120,6 +120,11 @@ abstract class OcppEndpoint<
       authentication: {
         prefix: <AuthenticationHandler[]>[
           new Handlers.SessionExistsHandler(this.sessionService, this.logger),
+          new Handlers.SessionTimeoutHandler(
+            this.sessionService,
+            this.logger,
+            this.options.sessionTimeout
+          ),
         ],
         suffix: <AuthenticationHandler[]>[],
       },
