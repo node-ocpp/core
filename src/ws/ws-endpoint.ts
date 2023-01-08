@@ -157,8 +157,6 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     } else {
       ws.close(code, data);
     }
-
-    this.onSessionClosed(clientId);
   }
 
   protected getSocket(clientId: string) {
