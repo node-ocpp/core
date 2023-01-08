@@ -61,7 +61,7 @@ abstract class OcppEndpoint<
   protected outboundMessageHandlers: OutboundMessageHandler[];
 
   protected abstract hasSession(clientId: string): boolean;
-  protected abstract dropSession(clientId: string): void;
+  protected abstract dropSession(clientId: string, force: boolean): void;
   protected abstract get sendMessageHandler(): OutboundMessageHandler;
 
   constructor(
@@ -278,7 +278,7 @@ abstract class OcppEndpoint<
       request.client,
       request.protocol,
       () => this.hasSession(request.client.id),
-      () => this.dropSession(request.client.id)
+      (force = false) => this.dropSession(request.client.id, force)
     );
     await this.sessionService.add(session);
 
