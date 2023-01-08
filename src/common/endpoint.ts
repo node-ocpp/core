@@ -296,8 +296,6 @@ abstract class OcppEndpoint<
       return;
     }
 
-    await this.sessionService.remove(clientId);
-
     this.logger.info(`Client with id ${clientId} disconnected`);
     this.emit('client_disconnected', new Client(clientId));
   }
