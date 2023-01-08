@@ -406,6 +406,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     code: number,
     reason: Buffer
   ) => {
+    this.logger.debug(`WebSocket connection closed with reason: ${code}`);
     this.onSessionClosed(path.parse(ws.url).base);
   };
 
