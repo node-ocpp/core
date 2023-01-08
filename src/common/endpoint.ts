@@ -287,11 +287,12 @@ abstract class OcppEndpoint<
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!this.sessionService.has(clientId)) {
-      this.logger.warn(
-        oneLine`onSessionClosed() was called but client
-        with id ${clientId}is already connected`
+    if (!(await this.sessionService.has(clientId))) {
+      this.logger.error(
+        oneLine`onSessionClosed() was called but session for client
+        with id ${clientId} does not exist`
       );
+      this.logger.trace(new Error().stack);
       return;
     }
 
