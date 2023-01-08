@@ -211,7 +211,6 @@ abstract class OcppEndpoint<
         this.emit('server_stopped');
       }
     });
-    console.dir(process.env);
   }
 
   protected async sendMessage(message: OutboundMessage) {
