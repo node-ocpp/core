@@ -1,5 +1,6 @@
 import ProtocolVersion from '../types/ocpp/version';
 import { InboundCall, OutboundCall } from './call';
+import { InboundMessage, OutboundMessage } from './message';
 
 class Session {
   private _isActiveHandler: () => boolean;
@@ -7,8 +8,11 @@ class Session {
 
   readonly client: Client;
   readonly protocol: ProtocolVersion;
+
   pendingInboundMessage?: InboundCall;
   pendingOutboundMessage?: OutboundCall;
+  lastInboundMessage?: InboundMessage;
+  lastOutboundMessage?: OutboundMessage;
 
   constructor(
     client: Client,

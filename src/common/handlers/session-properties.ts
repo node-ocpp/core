@@ -21,13 +21,14 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
       message.id === session.pendingOutboundMessage.id
     ) {
       session.pendingOutboundMessage = null;
-      await this.sessionService.update(session.client.id, session);
     }
 
     if (message instanceof InboundCall && !session.pendingInboundMessage) {
       session.pendingInboundMessage = message;
-      await this.sessionService.update(session.client.id, session);
     }
+
+    session.lastInboundMessage = message;
+    await this.sessionService.update(session.client.id, session);
 
     return await super.handle(message);
   }
@@ -51,13 +52,14 @@ class OutboundPendingMessageHandler extends OutboundMessageHandler {
       message.id === session.pendingInboundMessage.id
     ) {
       session.pendingInboundMessage = null;
-      await this.sessionService.update(session.client.id, session);
     }
 
     if (message instanceof OutboundCall && !session.pendingOutboundMessage) {
       session.pendingOutboundMessage = message;
-      await this.sessionService.update(session.client.id, session);
     }
+
+    session.lastOutboundMessage = message;
+    await this.sessionService.update(session.client.id, session);
 
     return await super.handle(message);
   }
