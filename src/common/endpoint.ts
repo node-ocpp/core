@@ -110,7 +110,7 @@ abstract class OcppEndpoint<
       protocols: ProtocolVersions,
       actionsAllowed: OcppActions,
       maxConnections: 511,
-      sessionTimeout: 60000,
+      sessionTimeout: 30000,
       httpServerOptions: {},
     } as EndpointOptions;
   }
