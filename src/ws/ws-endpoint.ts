@@ -157,8 +157,6 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     } else {
       ws.close(code, data);
     }
-
-    this.onSessionClosed(clientId);
   }
 
   protected getSocket(clientId: string) {
@@ -408,6 +406,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     code: number,
     reason: Buffer
   ) => {
+    this.logger.debug(`WebSocket connection closed with reason: ${code}`);
     this.onSessionClosed(path.parse(ws.url).base);
   };
 

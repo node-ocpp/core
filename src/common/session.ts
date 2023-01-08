@@ -1,20 +1,24 @@
 import ProtocolVersion from '../types/ocpp/version';
 import { InboundCall, OutboundCall } from './call';
+import { InboundMessage, OutboundMessage } from './message';
 
 class Session {
   private _isActiveHandler: () => boolean;
-  private _dropHandler: () => void;
+  private _dropHandler: (force: boolean) => void;
 
   readonly client: Client;
   readonly protocol: ProtocolVersion;
+
   pendingInboundMessage?: InboundCall;
   pendingOutboundMessage?: OutboundCall;
+  lastInboundMessage?: InboundMessage;
+  lastOutboundMessage?: OutboundMessage;
 
   constructor(
     client: Client,
     protocol: ProtocolVersion,
     isActiveHandler?: () => boolean,
-    dropHandler?: () => void
+    dropHandler?: (force: boolean) => void
   ) {
     this.client = client;
     this.protocol = protocol;
@@ -30,12 +34,12 @@ class Session {
     return this._isActiveHandler();
   }
 
-  drop() {
+  drop(force = false) {
     if (!this._dropHandler) {
       throw new Error('drop() was called but dropHandler is not set');
     }
 
-    this._dropHandler();
+    this._dropHandler(force);
   }
 
   set isActiveHandler(handler: () => boolean) {

@@ -4,7 +4,7 @@ import WsEndpoint from '../src/ws/ws-endpoint';
 import * as Handlers from './handlers';
 
 const wsEndpoint = new WsEndpoint(
-  { basicAuth: false },
+  { basicAuth: false, sessionTimeout: 120000 },
   [new Handlers.BasicAuthHandler()],
   [
     new Handlers.BootNotificationHandler(),

@@ -30,7 +30,6 @@ type EndpointOptions = {
   protocols?: Readonly<ProtocolVersion[]>;
   actionsAllowed?: Readonly<OcppAction[]>;
   maxConnections?: number;
-  messageTimeout?: number;
   sessionTimeout?: number;
   httpServerOptions?: ServerOptions;
 };
@@ -61,7 +60,7 @@ abstract class OcppEndpoint<
   protected outboundMessageHandlers: OutboundMessageHandler[];
 
   protected abstract hasSession(clientId: string): boolean;
-  protected abstract dropSession(clientId: string): void;
+  protected abstract dropSession(clientId: string, force: boolean): void;
   protected abstract get sendMessageHandler(): OutboundMessageHandler;
 
   constructor(
@@ -111,8 +110,7 @@ abstract class OcppEndpoint<
       protocols: ProtocolVersions,
       actionsAllowed: OcppActions,
       maxConnections: 511,
-      messageTimeout: 30000,
-      sessionTimeout: 60000,
+      sessionTimeout: 30000,
       httpServerOptions: {},
     } as EndpointOptions;
   }
@@ -122,6 +120,11 @@ abstract class OcppEndpoint<
       authentication: {
         prefix: <AuthenticationHandler[]>[
           new Handlers.SessionExistsHandler(this.sessionService, this.logger),
+          new Handlers.SessionTimeoutHandler(
+            this.sessionService,
+            this.logger,
+            this.options.sessionTimeout
+          ),
         ],
         suffix: <AuthenticationHandler[]>[],
       },
@@ -208,7 +211,6 @@ abstract class OcppEndpoint<
         this.emit('server_stopped');
       }
     });
-    console.dir(process.env);
   }
 
   protected async sendMessage(message: OutboundMessage) {
@@ -278,7 +280,7 @@ abstract class OcppEndpoint<
       request.client,
       request.protocol,
       () => this.hasSession(request.client.id),
-      () => this.dropSession(request.client.id)
+      (force = false) => this.dropSession(request.client.id, force)
     );
     await this.sessionService.add(session);
 
@@ -289,15 +291,14 @@ abstract class OcppEndpoint<
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!this.sessionService.has(clientId)) {
-      this.logger.warn(
-        oneLine`onSessionClosed() was called but client
-        with id ${clientId}is already connected`
+    if (!(await this.sessionService.has(clientId))) {
+      this.logger.error(
+        oneLine`onSessionClosed() was called but session for client
+        with id ${clientId} does not exist`
       );
+      this.logger.trace(new Error().stack);
       return;
     }
-
-    await this.sessionService.remove(clientId);
 
     this.logger.info(`Client with id ${clientId} disconnected`);
     this.emit('client_disconnected', new Client(clientId));
