@@ -32,7 +32,7 @@ class InboundActionsAllowedHandler extends InboundMessageHandler {
         message.sender,
         message.id,
         'NotImplemented',
-        'Action is not supported'
+        `Action '${message.action}' is not supported`
       );
     }
 
