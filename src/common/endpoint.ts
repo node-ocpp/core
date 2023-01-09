@@ -134,6 +134,7 @@ abstract class OcppEndpoint<
           ),
           new Handlers.InboundPendingMessageHandler(this.sessionStorage),
           new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
+          new Handlers.DefaultMessageHandler(this.logger),
         ],
         suffix: <InboundMessageHandler[]>[],
       },
