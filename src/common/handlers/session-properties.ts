@@ -1,18 +1,18 @@
-import { SessionService } from '../session';
+import { SessionStorage } from '../session';
 import { InboundMessage, OutboundMessage } from '../message';
 import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
 import { InboundCall, OutboundCall } from '../call';
 
 class InboundPendingMessageHandler extends InboundMessageHandler {
-  private sessionService;
+  private sessionStorage;
 
-  constructor(sessionService: SessionService) {
+  constructor(sessionStorage: SessionStorage) {
     super();
-    this.sessionService = sessionService;
+    this.sessionStorage = sessionStorage;
   }
 
   async handle(message: InboundMessage) {
-    const session = await this.sessionService.get(message.sender.id);
+    const session = await this.sessionStorage.get(message.sender.id);
 
     if (
       !(message instanceof InboundCall) &&
@@ -27,22 +27,22 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
     }
 
     session.lastInboundMessage = message;
-    await this.sessionService.set(session.client.id, session);
+    await this.sessionStorage.set(session.client.id, session);
 
     return await super.handle(message);
   }
 }
 
 class OutboundPendingMessageHandler extends OutboundMessageHandler {
-  private sessionService;
+  private sessionStorage;
 
-  constructor(sessionService: SessionService) {
+  constructor(sessionStorage: SessionStorage) {
     super();
-    this.sessionService = sessionService;
+    this.sessionStorage = sessionStorage;
   }
 
   async handle(message: OutboundMessage) {
-    const session = await this.sessionService.get(message.recipient.id);
+    const session = await this.sessionStorage.get(message.recipient.id);
 
     if (
       !(message instanceof OutboundCall) &&
@@ -57,7 +57,7 @@ class OutboundPendingMessageHandler extends OutboundMessageHandler {
     }
 
     session.lastOutboundMessage = message;
-    await this.sessionService.set(session.client.id, session);
+    await this.sessionStorage.set(session.client.id, session);
 
     return await super.handle(message);
   }

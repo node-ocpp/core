@@ -59,7 +59,7 @@ class Client {
   }
 }
 
-interface SessionService {
+interface SessionStorage {
   set(clientId: string, session: Session): Promise<void>;
   get(clientId: string): Promise<Session | null>;
   has(clientId: string): Promise<boolean>;
@@ -67,4 +67,4 @@ interface SessionService {
 }
 
 export default Session;
-export { Client, SessionService };
+export { Client, SessionStorage };

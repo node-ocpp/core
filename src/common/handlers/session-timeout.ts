@@ -1,22 +1,22 @@
-import { SessionService } from '../session';
+import { SessionStorage } from '../session';
 import { AuthenticationHandler, AuthenticationRequest } from '../handler';
 import { Logger } from 'ts-log';
 
 class SessionTimeoutHandler extends AuthenticationHandler {
-  private sessionService;
+  private sessionStorage;
   private logger;
   private timeout;
 
-  constructor(sessionService: SessionService, logger: Logger, timeout: number) {
+  constructor(sessionStorage: SessionStorage, logger: Logger, timeout: number) {
     super();
-    this.sessionService = sessionService;
+    this.sessionStorage = sessionStorage;
     this.logger = logger;
     this.timeout = timeout;
   }
 
   async handle(request: AuthenticationRequest) {
     const dropAfterTimeout = async () => {
-      const session = await this.sessionService.get(request.client.id);
+      const session = await this.sessionStorage.get(request.client.id);
       const difference =
         new Date().getTime() - session.lastInboundMessage?.timestamp.getTime();
 

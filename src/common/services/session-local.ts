@@ -1,6 +1,6 @@
-import Session, { SessionService } from '../session';
+import Session, { SessionStorage } from '../session';
 
-class LocalSessionService implements SessionService {
+class LocalSessionStorage implements SessionStorage {
   private sessions: Map<string, Session>;
 
   constructor() {
@@ -28,4 +28,4 @@ class LocalSessionService implements SessionService {
   }
 }
 
-export default LocalSessionService;
+export default LocalSessionStorage;
