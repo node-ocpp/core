@@ -80,8 +80,6 @@ abstract class OcppEndpoint<
     this.httpServer.on('error', this.onHttpError);
 
     this.sessionService = sessionService;
-    this.sessionService.create();
-
     this.logger = logger;
 
     this.authenticationHandlers = AsyncHandler.map([

@@ -3,14 +3,8 @@ import Session, { SessionService } from '../session';
 class LocalSessionService implements SessionService {
   private sessions: Map<string, Session>;
 
-  async create() {
-    if (!this.sessions) {
-      this.sessions = new Map<string, Session>();
-    }
-  }
-
-  async destroy() {
-    delete this.sessions;
+  constructor() {
+    this.sessions = new Map<string, Session>();
   }
 
   async count() {

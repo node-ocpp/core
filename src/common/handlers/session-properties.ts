@@ -9,7 +9,6 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
   constructor(sessionService: SessionService) {
     super();
     this.sessionService = sessionService;
-    this.sessionService.create();
   }
 
   async handle(message: InboundMessage) {
@@ -40,7 +39,6 @@ class OutboundPendingMessageHandler extends OutboundMessageHandler {
   constructor(sessionService: SessionService) {
     super();
     this.sessionService = sessionService;
-    this.sessionService.create();
   }
 
   async handle(message: OutboundMessage) {

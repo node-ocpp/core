@@ -10,7 +10,6 @@ class SessionTimeoutHandler extends AuthenticationHandler {
   constructor(sessionService: SessionService, logger: Logger, timeout: number) {
     super();
     this.sessionService = sessionService;
-    this.sessionService.create();
     this.logger = logger;
     this.timeout = timeout;
   }

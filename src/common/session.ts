@@ -60,8 +60,6 @@ class Client {
 }
 
 interface SessionService {
-  create(): Promise<void>;
-  destroy(): Promise<void>;
   count(): Promise<number>;
   add(sesion: Session): Promise<void>;
   has(clientId: string): Promise<boolean>;
