@@ -1,7 +1,6 @@
 import { SessionService } from '../session';
 import { AuthenticationHandler, AuthenticationRequest } from '../handler';
 import { Logger } from 'ts-log';
-import { oneLine } from 'common-tags';
 
 class SessionTimeoutHandler extends AuthenticationHandler {
   private sessionService;
