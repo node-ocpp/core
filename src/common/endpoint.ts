@@ -7,8 +7,8 @@ import { oneLine } from 'common-tags';
 import merge from 'lodash.merge';
 
 import winstonLogger from './util/logger';
-import Session, { SessionService, Client } from './session';
-import LocalSessionService from './services/session-local';
+import Session, { SessionStorage, Client } from './session';
+import LocalSessionStorage from './services/session-local';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
@@ -53,7 +53,7 @@ abstract class OcppEndpoint<
   protected _options: TConfig;
 
   protected httpServer: HttpServer;
-  protected sessionService: SessionService;
+  protected sessionStorage: SessionStorage;
   protected logger: Logger;
   protected authenticationHandlers: AuthenticationHandler[];
   protected inboundMessageHandlers: InboundMessageHandler[];
@@ -68,7 +68,7 @@ abstract class OcppEndpoint<
     authenticationHandlers: AuthenticationHandler[],
     inboundMessageHandlers: InboundMessageHandler[],
     outboundMessageHandlers: OutboundMessageHandler[] = [],
-    sessionService: SessionService = new LocalSessionService(),
+    sessionStorage: SessionStorage = new LocalSessionStorage(),
     logger: Logger = winstonLogger
   ) {
     super();
@@ -79,9 +79,7 @@ abstract class OcppEndpoint<
       : http.createServer(this.options.httpServerOptions);
     this.httpServer.on('error', this.onHttpError);
 
-    this.sessionService = sessionService;
-    this.sessionService.create();
-
+    this.sessionStorage = sessionStorage;
     this.logger = logger;
 
     this.authenticationHandlers = AsyncHandler.map([
@@ -119,9 +117,9 @@ abstract class OcppEndpoint<
     return {
       authentication: {
         prefix: <AuthenticationHandler[]>[
-          new Handlers.SessionExistsHandler(this.sessionService, this.logger),
+          new Handlers.SessionExistsHandler(this.sessionStorage, this.logger),
           new Handlers.SessionTimeoutHandler(
-            this.sessionService,
+            this.sessionStorage,
             this.logger,
             this.options.sessionTimeout
           ),
@@ -131,10 +129,10 @@ abstract class OcppEndpoint<
       inboundMessage: {
         prefix: [
           new Handlers.InboundMessageSynchronicityHandler(
-            this.sessionService,
+            this.sessionStorage,
             this.logger
           ),
-          new Handlers.InboundPendingMessageHandler(this.sessionService),
+          new Handlers.InboundPendingMessageHandler(this.sessionStorage),
           new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
         ],
         suffix: <InboundMessageHandler[]>[],
@@ -142,14 +140,14 @@ abstract class OcppEndpoint<
       outboundMessage: {
         prefix: [
           new Handlers.OutboundMessageSynchronicityHandler(
-            this.sessionService,
+            this.sessionStorage,
             this.logger
           ),
           new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
         ],
         suffix: <OutboundMessageHandler[]>[
           this.sendMessageHandler,
-          new Handlers.OutboundPendingMessageHandler(this.sessionService),
+          new Handlers.OutboundPendingMessageHandler(this.sessionStorage),
         ],
       },
     };
@@ -282,7 +280,7 @@ abstract class OcppEndpoint<
       () => this.hasSession(request.client.id),
       (force = false) => this.dropSession(request.client.id, force)
     );
-    await this.sessionService.add(session);
+    await this.sessionStorage.set(request.client.id, session);
 
     this.logger.info(
       `Client with id ${request.client.id} authenticated successfully`
@@ -291,7 +289,7 @@ abstract class OcppEndpoint<
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!(await this.sessionService.has(clientId))) {
+    if (!(await this.sessionStorage.has(clientId))) {
       this.logger.error(
         oneLine`onSessionClosed() was called but session for client
         with id ${clientId} does not exist`

@@ -11,7 +11,7 @@ import basicAuth from 'basic-auth';
 import merge from 'lodash.merge';
 
 import OcppEndpoint, { EndpointOptions } from '../common/endpoint';
-import { Client, SessionService } from '../common/session';
+import { Client, SessionStorage } from '../common/session';
 import { InboundMessage, OutboundMessage, Payload } from '../common/message';
 import { InboundCall, OutboundCall } from '../common/call';
 import { InboundCallResult, OutboundCallResult } from '../common/callresult';
@@ -46,7 +46,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     authenticationHandlers: AuthenticationHandler[],
     inboundMessageHandlers: InboundMessageHandler[],
     outboundMessageHandlers?: OutboundMessageHandler[],
-    sessionService?: SessionService,
+    sessionStorage?: SessionStorage,
     logger?: Logger
   ) {
     super(
@@ -54,7 +54,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       authenticationHandlers,
       inboundMessageHandlers,
       outboundMessageHandlers,
-      sessionService,
+      sessionStorage,
       logger
     );
     this.wsServer = new WsServer(this.options.wsServerOptions);
@@ -89,7 +89,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
   protected get sendMessageHandler() {
     const handleSend = async (message: OutboundMessage) => {
       const ws = this.getSocket(message.recipient.id);
-      const session = await this.sessionService.get(message.recipient.id);
+      const session = await this.sessionStorage.get(message.recipient.id);
 
       const messageArr: any[] = [message.type, message.id];
       if (message instanceof OutboundCall) {

@@ -2,24 +2,24 @@ import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 
 import MessageType from '../../types/ocpp/type';
-import { SessionService } from '../session';
+import { SessionStorage } from '../session';
 import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
 import { InboundMessage, OutboundMessage } from '../message';
 import { InboundCall, OutboundCall } from '../call';
 import { OutboundCallError } from '../callerror';
 
 class InboundMessageSynchronicityHandler extends InboundMessageHandler {
-  private sessionService;
+  private sessionStorage;
   private logger;
 
-  constructor(sessionService: SessionService, logger: Logger) {
+  constructor(sessionStorage: SessionStorage, logger: Logger) {
     super();
-    this.sessionService = sessionService;
+    this.sessionStorage = sessionStorage;
     this.logger = logger;
   }
 
   async handle(message: InboundMessage) {
-    const session = await this.sessionService.get(message.sender.id);
+    const session = await this.sessionStorage.get(message.sender.id);
     let error = false;
 
     /*
@@ -79,17 +79,17 @@ class InboundMessageSynchronicityHandler extends InboundMessageHandler {
 }
 
 class OutboundMessageSynchronicityHandler extends OutboundMessageHandler {
-  private sessionService;
+  private sessionStorage;
   private logger;
 
-  constructor(sessionService: SessionService, logger: Logger) {
+  constructor(sessionStorage: SessionStorage, logger: Logger) {
     super();
-    this.sessionService = sessionService;
+    this.sessionStorage = sessionStorage;
     this.logger = logger;
   }
 
   async handle(message: OutboundMessage) {
-    const session = await this.sessionService.get(message.recipient.id);
+    const session = await this.sessionStorage.get(message.recipient.id);
 
     /*
     If the client has sent an inbound CALL message, the endpoint must respond
