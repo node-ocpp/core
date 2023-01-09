@@ -27,7 +27,7 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
     }
 
     session.lastInboundMessage = message;
-    await this.sessionService.update(session.client.id, session);
+    await this.sessionService.set(session.client.id, session);
 
     return await super.handle(message);
   }
@@ -57,7 +57,7 @@ class OutboundPendingMessageHandler extends OutboundMessageHandler {
     }
 
     session.lastOutboundMessage = message;
-    await this.sessionService.update(session.client.id, session);
+    await this.sessionService.set(session.client.id, session);
 
     return await super.handle(message);
   }

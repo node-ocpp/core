@@ -60,12 +60,10 @@ class Client {
 }
 
 interface SessionService {
-  count(): Promise<number>;
-  add(sesion: Session): Promise<void>;
-  has(clientId: string): Promise<boolean>;
+  set(clientId: string, session: Session): Promise<void>;
   get(clientId: string): Promise<Session | null>;
-  update(clientId: string, session: Session): Promise<void>;
-  remove(clientId: string): Promise<void>;
+  has(clientId: string): Promise<boolean>;
+  count(): Promise<number>;
 }
 
 export default Session;

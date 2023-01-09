@@ -7,36 +7,24 @@ class LocalSessionService implements SessionService {
     this.sessions = new Map<string, Session>();
   }
 
-  async count() {
-    return this.sessions.size;
-  }
-
-  async add(session: Session) {
-    this.sessions.set(session.client.id, session);
-  }
-
-  async has(clientId: string) {
-    return this.sessions.has(clientId);
+  async set(clientId: string, session: Session) {
+    if (session === null) {
+      this.sessions.delete(clientId);
+    } else {
+      this.sessions.set(clientId, session);
+    }
   }
 
   async get(clientId: string) {
     return this.sessions.get(clientId) || null;
   }
 
-  async update(clientId: string, session: Session) {
-    if (await !this.has(clientId)) {
-      throw new Error(`No session for client with id ${clientId} exists`);
-    }
-
-    this.sessions.set(clientId, session);
+  async has(clientId: string) {
+    return this.sessions.has(clientId);
   }
 
-  async remove(clientId: string) {
-    if (await !this.has(clientId)) {
-      throw new Error(`No session for client with id ${clientId} exists`);
-    }
-
-    this.sessions.delete(clientId);
+  async count() {
+    return this.sessions.size;
   }
 }
 

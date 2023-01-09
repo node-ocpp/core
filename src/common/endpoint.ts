@@ -280,7 +280,7 @@ abstract class OcppEndpoint<
       () => this.hasSession(request.client.id),
       (force = false) => this.dropSession(request.client.id, force)
     );
-    await this.sessionService.add(session);
+    await this.sessionService.set(request.client.id, session);
 
     this.logger.info(
       `Client with id ${request.client.id} authenticated successfully`
