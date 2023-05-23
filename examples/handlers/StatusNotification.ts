@@ -9,7 +9,6 @@ class StatusNotificationHandler extends InboundMessageHandler {
     }
 
     message.respond(new OutboundCallResult(message.sender, message.id, {}));
-    return await super.handle(message);
   }
 }
 

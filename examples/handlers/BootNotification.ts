@@ -15,8 +15,6 @@ class BootNotificationHandler extends InboundMessageHandler {
         status: 'Accepted',
       })
     );
-
-    return await super.handle(message);
   }
 }
 

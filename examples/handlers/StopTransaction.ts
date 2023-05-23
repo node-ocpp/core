@@ -13,8 +13,6 @@ class StopTransactionHandler extends InboundMessageHandler {
         idTagInfo: { status: 'Accepted' },
       })
     );
-
-    return await super.handle(message);
   }
 }
 

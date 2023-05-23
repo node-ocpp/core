@@ -15,8 +15,6 @@ class HeartbeatHandler extends InboundMessageHandler {
         },
       })
     );
-
-    return await super.handle(message);
   }
 }
 

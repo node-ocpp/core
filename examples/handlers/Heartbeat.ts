@@ -13,8 +13,6 @@ class HeartbeatHandler extends InboundMessageHandler {
         currentTime: new Date(),
       })
     );
-
-    return await super.handle(message);
   }
 }
 

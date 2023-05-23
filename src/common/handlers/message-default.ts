@@ -1,8 +1,8 @@
 import { Logger } from 'ts-log';
-import { OutboundCallError } from '../callerror';
-
 import { InboundMessageHandler } from '../handler';
 import { InboundMessage } from '../message';
+import { RespondableMessage } from '../message';
+import { OutboundCallError } from '../callerror';
 
 class DefaultMessageHandler extends InboundMessageHandler {
   private logger: Logger;
@@ -13,6 +13,10 @@ class DefaultMessageHandler extends InboundMessageHandler {
   }
 
   async handle(message: InboundMessage) {
+    if (message instanceof RespondableMessage && message.isResponded) {
+      return;
+    }
+
     this.logger.warn(
       `Client with id ${message.sender.id} sent valid but unsupported message`
     );
