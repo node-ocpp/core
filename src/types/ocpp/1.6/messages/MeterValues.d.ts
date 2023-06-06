@@ -14,7 +14,7 @@ declare type MeterValuesResponse = OutboundCallResult<{}>;
 declare type MeterValuesRequestPayload = {
   connectorId: number;
   transactionId?: number;
-  meterValues: MeterValue[];
+  meterValue: MeterValue[];
 };
 
 export { MeterValuesRequest, MeterValuesResponse };
