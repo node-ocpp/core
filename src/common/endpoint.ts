@@ -211,6 +211,26 @@ abstract class OcppEndpoint<
     });
   }
 
+  protected addHandler(...handlers: InboundMessageHandler[]) {
+    const length = this.defaultHandlers.inboundMessage.suffix.length;
+    this.inboundMessageHandlers.splice(
+      this.inboundMessageHandlers.length - length,
+      length
+    );
+
+    this.inboundMessageHandlers = AsyncHandler.map([
+      ...this.inboundMessageHandlers,
+      ...handlers,
+      ...this.defaultHandlers.inboundMessage.suffix,
+    ]);
+  }
+
+  protected removeHandler(...handlers: InboundMessageHandler[]) {
+    this.inboundMessageHandlers = this.inboundMessageHandlers.filter(
+      handler => !handlers.includes(handler)
+    );
+  }
+
   protected async sendMessage(message: OutboundMessage) {
     if (!this.isListening) {
       this.logger.warn(
