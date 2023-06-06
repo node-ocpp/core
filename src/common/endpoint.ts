@@ -1,5 +1,6 @@
 import http, { Server as HttpServer, ServerOptions } from 'http';
 import https from 'https';
+import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import { Logger } from 'ts-log';
@@ -12,7 +13,8 @@ import LocalSessionStorage from './services/session-local';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
-import { InboundMessage, OutboundMessage } from './message';
+import { InboundMessage, OutboundMessage, Payload } from './message';
+import { OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import * as Handlers from './handlers';
 import {
@@ -22,6 +24,11 @@ import {
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
+import {
+  CallAction,
+  CallPayload,
+  CallResponsePayload,
+} from '../types/ocpp/util';
 
 type EndpointOptions = {
   port?: number;
@@ -208,6 +215,26 @@ abstract class OcppEndpoint<
         this.logger.info('Stopped endpoint');
         this.emit('server_stopped');
       }
+    });
+  }
+
+  public async send<TRequest extends OutboundCall>(
+    recipient: string,
+    action: CallAction<TRequest>,
+    data: CallPayload<TRequest>,
+    id: string = randomUUID()
+  ): Promise<CallResponsePayload<TRequest>> {
+    const message = new OutboundCall(new Client(recipient), id, action, data);
+    await this.sendMessage(message);
+
+    return new Promise((resolve, reject) => {
+      const callback = async (data: Payload) => {
+        this.removeHandler(responseHandler);
+        resolve(data as CallResponsePayload<TRequest>);
+      };
+      const responseHandler = new Handlers.IdHandler(id, callback);
+
+      this.addHandler(responseHandler);
     });
   }
 
