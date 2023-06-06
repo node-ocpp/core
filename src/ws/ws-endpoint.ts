@@ -346,9 +346,12 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         this.options.schemaValidation &&
         (type === MessageType.CALL || type === MessageType.CALLRESULT)
       ) {
+        const session = await this.sessionStorage.get(client.id);
+        const lastOutboundCall = session?.lastOutboundMessage as OutboundCall;
+
         const messageValidation = await this.validateSchema(
           type,
-          action,
+          action || lastOutboundCall.action,
           payload,
           ws.protocol as ProtocolVersion
         );

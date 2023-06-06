@@ -1,8 +1,6 @@
-import IdToken from './IdToken';
-
 declare type IdTagInfo = {
   expiryDate?: Date;
-  parentIdTag?: IdToken;
+  parentIdTag?: string;
   status: AuthorizationStatus;
 };
 
