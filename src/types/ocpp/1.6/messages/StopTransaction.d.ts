@@ -1,6 +1,5 @@
 import { InboundCall } from '../../../../common/call';
 import { OutboundCallResult } from '../../../../common/callresult';
-import IdToken from '../structs/IdToken';
 import MeterValue from '../structs/MeterValue';
 import IdTagInfo from '../structs/IdTagInfo';
 
@@ -12,7 +11,7 @@ declare type StopTransactionRequest = InboundCall<
 >;
 
 declare type StopTransactionRequestPayload = {
-  idTag?: IdToken;
+  idTag?: string;
   meterStop: number;
   timestamp: Date;
   transactionId: number;

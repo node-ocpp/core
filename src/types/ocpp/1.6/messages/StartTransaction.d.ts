@@ -1,6 +1,5 @@
 import { InboundCall } from '../../../../common/call';
 import { OutboundCallResult } from '../../../../common/callresult';
-import IdToken from '../structs/IdToken';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type StartTransactionRequest = InboundCall<
@@ -12,7 +11,7 @@ declare type StartTransactionRequest = InboundCall<
 
 declare type StartTransactionRequestPayload = {
   connectorId: number;
-  idTag: IdToken;
+  idTag: string;
   meterStart: number;
   reservationId?: number;
   timestamp: Date;
