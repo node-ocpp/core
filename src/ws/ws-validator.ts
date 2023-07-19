@@ -74,13 +74,11 @@ class WsValidator {
     const result = this.validator.validate(data, schema);
 
     if (!result.valid) {
-      this.logger.warn(
-        `${action} ${MessageType[type]} payload validation failed`
-      );
+      this.logger.warn(`${action} ${schemaType} payload validation failed`);
       this.logger.trace(result.errors);
     } else {
       this.logger.debug(
-        `${action} ${MessageType[type]} payload validation successful`
+        `${action} ${schemaType} payload validation successful`
       );
     }
 
