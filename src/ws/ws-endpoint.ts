@@ -316,7 +316,8 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         messageProperties = this.parseRawMessage(data.toString());
       } catch (err: any) {
         this.logger.warn(
-          `Error while parsing message from client with id ${client.id}`
+          `Error while parsing message from client
+          with id ${client.id}: ${err.message}`
         );
         this.logger.trace(err.stack);
 

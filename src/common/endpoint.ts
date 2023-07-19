@@ -75,33 +75,55 @@ abstract class OcppEndpoint<
     logger: Logger = winstonLogger
   ) {
     super();
+    this.logger = logger;
+
     this._options = merge(this.defaultOptions, options);
+    this.logger.debug('Loaded endpoint configuration');
+    this.logger.trace(this._options);
 
     this.httpServer = this.options.https
       ? https.createServer(this.options.httpServerOptions)
       : http.createServer(this.options.httpServerOptions);
     this.httpServer.on('error', this.onHttpError);
+    this.logger.debug('Created HTTP(S) server instance');
 
     this.sessionStorage = sessionStorage;
-    this.logger = logger;
 
     this.authenticationHandlers = AsyncHandler.map([
       ...this.defaultHandlers.authentication.prefix,
       ...authenticationHandlers,
       ...this.defaultHandlers.authentication.suffix,
     ]);
+    this.logger.debug(
+      `Loaded ${this.authenticationHandlers.length} authentication handlers`
+    );
+    this.logger.trace(
+      this.authenticationHandlers.map(handler => handler.constructor.name)
+    );
 
     this.inboundMessageHandlers = AsyncHandler.map([
       ...this.defaultHandlers.inboundMessage.prefix,
       ...inboundMessageHandlers,
       ...this.defaultHandlers.inboundMessage.suffix,
     ]);
+    this.logger.debug(
+      `Loaded ${this.inboundMessageHandlers.length} inbound message handlers`
+    );
+    this.logger.trace(
+      this.inboundMessageHandlers.map(handler => handler.constructor.name)
+    );
 
     this.outboundMessageHandlers = AsyncHandler.map([
       ...this.defaultHandlers.outboundMessage.prefix,
       ...outboundMessageHandlers,
       ...this.defaultHandlers.outboundMessage.suffix,
     ]);
+    this.logger.debug(
+      `Loaded ${this.outboundMessageHandlers.length} outbound message handlers`
+    );
+    this.logger.trace(
+      this.outboundMessageHandlers.map(handler => handler.constructor.name)
+    );
   }
 
   protected get defaultOptions() {
@@ -256,11 +278,36 @@ abstract class OcppEndpoint<
       ...handlers,
       ...this.defaultHandlers.inboundMessage.suffix,
     ]);
+
+    if (handlers.length === 1) {
+      this.logger.debug(
+        `Added inbound ${handlers[0].constructor.name} at position ${
+          this.inboundMessageHandlers.length + 1
+        }`
+      );
+    } else {
+      this.logger.debug(
+        `Added ${
+          handlers.length
+        } inbound message handlers starting at position ${
+          this.inboundMessageHandlers.length + 1
+        }`
+      );
+    }
   }
 
   protected removeHandler(...handlers: InboundMessageHandler[]) {
     this.inboundMessageHandlers = this.inboundMessageHandlers.filter(
-      handler => !handlers.includes(handler)
+      (handler, i) => {
+        if (handlers.includes(handler)) {
+          this.logger.debug(
+            `Removed inbound ${handler.constructor.name} from position ${i}`
+          );
+          return false;
+        } else {
+          return true;
+        }
+      }
     );
   }
 
@@ -272,7 +319,9 @@ abstract class OcppEndpoint<
       );
       this.logger.trace(new Error().stack);
       return;
-    } else if (!this.hasSession(message.recipient.id)) {
+    }
+
+    if (!this.hasSession(message.recipient.id)) {
       this.logger.warn(
         oneLine`sendMessage() was called but client with
         id ${message.recipient.id} is not connected`
