@@ -4,9 +4,7 @@ import MeterValue from '../structs/MeterValue';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type StopTransactionRequest = InboundCall<
-  'StopTransaction',
   StopTransactionRequestPayload,
-  StopTransactionResponsePayload,
   StopTransactionResponse
 >;
 

@@ -2,9 +2,7 @@ import { InboundCall } from '../../../../common/call';
 import { OutboundCallResult } from '../../../../common/callresult';
 
 declare type BootNotificationRequest = InboundCall<
-  'BootNotification',
   BootNotificationRequestPayload,
-  BootNotificationResponsePayload,
   BootNotificationResponse
 >;
 

@@ -1,45 +1,38 @@
-import Call from '../../common/call';
-import CallResult from '../../common/callresult';
-import { Payload } from '../../common/message';
-import OcppAction from './action';
-
-// Infer action type from Call
-type CallAction<TMessage> = TMessage extends Call<infer TAction>
-  ? TAction
-  : never;
+import Call, { InboundCall, OutboundCall } from '../../common/call';
+import { InboundCallResult, OutboundCallResult } from '../../common/callresult';
 
 // Infer payload type from Call
-type CallPayload<TMessage> = TMessage extends Call<OcppAction, infer TPayload>
+type CallPayload<TMessage> = TMessage extends Call<infer TPayload>
   ? TPayload
   : never;
 
 // Infer response type from Call
-type CallResponse<TMessage> = TMessage extends Call<
-  OcppAction,
-  Payload,
-  Payload,
+type CallResponse<TMessage> = TMessage extends OutboundCall<
+  any,
   infer TResponse
 >
+  ? TResponse
+  : TMessage extends InboundCall<any, infer TResponse>
   ? TResponse
   : never;
 
 // Infer response payload type from Call
-type CallResponsePayload<TMessage> = TMessage extends Call<
-  OcppAction,
-  Payload,
-  infer TResponsePayload
+type CallResponsePayload<TMessage> = TMessage extends InboundCall<
+  any,
+  infer TResponse
 >
-  ? TResponsePayload
+  ? CallResultPayload<TResponse>
+  : TMessage extends OutboundCall<any, infer TResponse>
+  ? CallResultPayload<TResponse>
   : never;
 
-type CallResultPayload<TMessage> = TMessage extends CallResult<infer TPayload>
+// Infer payload type from CallResult
+type CallResultPayload<TMessage> = TMessage extends InboundCallResult<
+  infer TPayload
+>
+  ? TPayload
+  : TMessage extends OutboundCallResult<infer TPayload>
   ? TPayload
   : never;
 
-export {
-  CallAction,
-  CallPayload,
-  CallResponse,
-  CallResponsePayload,
-  CallResultPayload,
-};
+export { CallPayload, CallResponse, CallResponsePayload, CallResultPayload };

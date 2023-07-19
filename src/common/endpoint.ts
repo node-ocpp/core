@@ -13,8 +13,8 @@ import LocalSessionStorage from './services/session-local';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
-import { InboundMessage, OutboundMessage, Payload } from './message';
-import { OutboundCall } from './call';
+import { InboundMessage, OutboundMessage } from './message';
+import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import * as Handlers from './handlers';
 import {
@@ -24,11 +24,7 @@ import {
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
-import {
-  CallAction,
-  CallPayload,
-  CallResponsePayload,
-} from '../types/ocpp/util';
+import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
 
 type EndpointOptions = {
   port?: number;
@@ -218,9 +214,19 @@ abstract class OcppEndpoint<
     });
   }
 
+  public handle<TRequest extends InboundCall>(
+    action: OcppAction,
+    callback: (
+      data: CallPayload<TRequest>
+    ) => Promise<CallResponsePayload<TRequest>>
+  ) {
+    const handler = new Handlers.ActionHandler(action, callback);
+    this.addHandler(handler);
+  }
+
   public async send<TRequest extends OutboundCall>(
     recipient: string,
-    action: CallAction<TRequest>,
+    action: OcppAction,
     data: CallPayload<TRequest>,
     id: string = randomUUID()
   ): Promise<CallResponsePayload<TRequest>> {
@@ -228,13 +234,13 @@ abstract class OcppEndpoint<
     await this.sendMessage(message);
 
     return new Promise((resolve, reject) => {
-      const callback = async (data: Payload) => {
-        this.removeHandler(responseHandler);
+      const callback = async (data: CallPayload<TRequest>) => {
+        this.removeHandler(handler);
         resolve(data as CallResponsePayload<TRequest>);
       };
-      const responseHandler = new Handlers.IdHandler(id, callback);
 
-      this.addHandler(responseHandler);
+      const handler = new Handlers.IdHandler(id, callback);
+      this.addHandler(handler);
     });
   }
 
@@ -329,10 +335,12 @@ abstract class OcppEndpoint<
     );
     await this.sessionStorage.set(request.client.id, session);
 
-    this.logger.info(
-      `Client with id ${request.client.id} authenticated successfully`
-    );
-    this.emit('client_connected', request.client);
+    process.nextTick(() => {
+      this.logger.info(
+        `Client with id ${request.client.id} authenticated successfully`
+      );
+      this.emit('client_connected', request.client);
+    });
   }
 
   protected async onSessionClosed(clientId: string) {

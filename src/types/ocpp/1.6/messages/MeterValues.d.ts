@@ -3,9 +3,7 @@ import { OutboundCallResult } from '../../../../common/callresult';
 import MeterValue from '../structs/MeterValue';
 
 declare type MeterValuesRequest = InboundCall<
-  'MeterValues',
   MeterValuesRequestPayload,
-  {},
   MeterValuesResponse
 >;
 

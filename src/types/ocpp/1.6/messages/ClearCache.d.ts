@@ -1,12 +1,7 @@
 import { OutboundCall } from '../../../../common/call';
 import { InboundCallResult } from '../../../../common/callresult';
 
-declare type ClearCacheRequest = OutboundCall<
-  'ClearCache',
-  null,
-  ClearCacheResponsePayload,
-  ClearCacheResponse
->;
+declare type ClearCacheRequest = OutboundCall<{}, ClearCacheResponse>;
 
 declare type ClearCacheResponse = InboundCallResult<ClearCacheResponsePayload>;
 

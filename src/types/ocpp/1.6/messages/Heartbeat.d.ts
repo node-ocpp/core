@@ -1,12 +1,7 @@
 import { InboundCall } from '../../../../common/call';
 import { OutboundCallResult } from '../../../../common/callresult';
 
-declare type HeartbeatRequest = InboundCall<
-  'Heartbeat',
-  {},
-  HeartbeatResponsePayload,
-  HeartbeatResponse
->;
+declare type HeartbeatRequest = InboundCall<{}, HeartbeatResponse>;
 
 declare type HeartbeatResponse = OutboundCallResult<HeartbeatResponsePayload>;
 

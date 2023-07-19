@@ -10,8 +10,7 @@ type MessageValue =
   | { [x: string]: MessageValue }
   | Array<MessageValue>;
 
-type Payload = MessageValue | null | {};
-
+type Payload = any; // MessageValue | null | {};
 abstract class OcppMessage {
   readonly type!: MessageType;
   readonly id: string;

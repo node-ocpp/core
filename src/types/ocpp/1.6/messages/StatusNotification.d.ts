@@ -2,9 +2,7 @@ import { InboundCall } from '../../../../common/call';
 import { OutboundCallResult } from '../../../../common/callresult';
 
 declare type StatusNotificationRequest = InboundCall<
-  'StatusNotification',
   StatusNofificationRequestPayload,
-  {},
   StatusNotificationResponse
 >;
 
