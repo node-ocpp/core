@@ -105,16 +105,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         );
 
         if (!messageValidation?.valid) {
-          this.logger.warn(
-            oneLine`Outbound ${MessageType[message.type]}
-            message payload is not valid`
-          );
-          this.logger.trace(messageValidation.errors);
           return;
-        } else {
-          this.logger.debug(
-            `Outbound ${MessageType[message.type]} message payload is valid`
-          );
         }
       }
 
@@ -347,15 +338,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         );
 
         if (!messageValidation?.valid) {
-          this.logger.warn(
-            `Inbound ${MessageType[type]} message payload is not valid`
-          );
-          this.logger.trace(messageValidation.errors);
           return;
-        } else {
-          this.logger.debug(
-            `Inbound ${MessageType[type]} message payload is valid`
-          );
         }
       }
 

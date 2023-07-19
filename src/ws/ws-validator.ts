@@ -2,6 +2,7 @@ import path from 'path';
 import { promises as fsPromises } from 'fs';
 import { Logger } from 'ts-log';
 import { Validator } from 'jsonschema';
+import { oneLine } from 'common-tags';
 
 import defaultLogger from '../common/util/logger';
 import { Payload } from '../common/message';
@@ -70,7 +71,20 @@ class WsValidator {
       schema = schemaMap.get(action);
     }
 
-    return this.validator.validate(data, schema);
+    const result = this.validator.validate(data, schema);
+
+    if (!result.valid) {
+      this.logger.warn(
+        `${action} ${MessageType[type]} payload validation failed`
+      );
+      this.logger.trace(result.errors);
+    } else {
+      this.logger.debug(
+        `${action} ${MessageType[type]} payload validation successful`
+      );
+    }
+
+    return result;
   }
 
   protected async loadSchema(
@@ -86,10 +100,10 @@ class WsValidator {
     });
 
     if (!schemaDir) {
-      throw new Error(
-        `Missing schema directory for protocol
-        ${protocol} in WebSocket endpoint config`
-      );
+      const message = oneLine`Missing schema directory for
+        protocol ${protocol} in WsValidator configuration`;
+      this.logger.error(message);
+      throw new Error(message);
     }
 
     const schemaPath = path.join(schemaDir, `${action}R${type.slice(1)}.json`);
@@ -98,20 +112,25 @@ class WsValidator {
     try {
       rawSchema = await (await fsPromises.readFile(schemaPath)).toString();
     } catch (err) {
-      throw new Error(
-        `Error while attempting to read JSON schema from file: ${schemaPath}`,
-        { cause: err as any }
-      );
+      const message = oneLine`Error while attempting
+        to read JSON schema from file: ${schemaPath}`;
+      this.logger.error(message);
+      this.logger.trace(err);
+      throw new Error(message, { cause: err as Error });
     }
 
     let jsonSchema: Record<string, any>;
     try {
       jsonSchema = JSON.parse(rawSchema);
     } catch (err) {
-      throw new Error('Error while attempting to parse JSON schema', {
-        cause: err as any,
-      });
+      const message = oneLine`Error while attempting to
+      parse JSON schema loaded from file: ${schemaPath}`;
+      this.logger.error(message);
+      this.logger.trace(err);
+      throw new Error(message, { cause: err as Error });
     }
+
+    this.logger.debug(`Cached ${type} schema for ${action} (${protocol})`);
 
     return jsonSchema;
   }
