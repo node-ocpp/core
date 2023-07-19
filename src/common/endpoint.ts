@@ -97,9 +97,9 @@ abstract class OcppEndpoint<
     this.logger.debug(
       `Loaded ${this.authenticationHandlers.length} authentication handlers`
     );
-    this.logger.trace(
-      this.authenticationHandlers.map(handler => handler.constructor.name)
-    );
+    this.logger.trace({
+      ...this.authenticationHandlers.map(handler => handler.constructor.name),
+    });
 
     this.inboundMessageHandlers = AsyncHandler.map([
       ...this.defaultHandlers.inboundMessage.prefix,
@@ -109,9 +109,9 @@ abstract class OcppEndpoint<
     this.logger.debug(
       `Loaded ${this.inboundMessageHandlers.length} inbound message handlers`
     );
-    this.logger.trace(
-      this.inboundMessageHandlers.map(handler => handler.constructor.name)
-    );
+    this.logger.trace({
+      ...this.inboundMessageHandlers.map(handler => handler.constructor.name),
+    });
 
     this.outboundMessageHandlers = AsyncHandler.map([
       ...this.defaultHandlers.outboundMessage.prefix,
@@ -121,9 +121,9 @@ abstract class OcppEndpoint<
     this.logger.debug(
       `Loaded ${this.outboundMessageHandlers.length} outbound message handlers`
     );
-    this.logger.trace(
-      this.outboundMessageHandlers.map(handler => handler.constructor.name)
-    );
+    this.logger.trace({
+      ...this.outboundMessageHandlers.map(handler => handler.constructor.name),
+    });
   }
 
   protected get defaultOptions() {
@@ -266,51 +266,6 @@ abstract class OcppEndpoint<
     });
   }
 
-  protected addHandler(...handlers: InboundMessageHandler[]) {
-    const length = this.defaultHandlers.inboundMessage.suffix.length;
-    this.inboundMessageHandlers.splice(
-      this.inboundMessageHandlers.length - length,
-      length
-    );
-
-    this.inboundMessageHandlers = AsyncHandler.map([
-      ...this.inboundMessageHandlers,
-      ...handlers,
-      ...this.defaultHandlers.inboundMessage.suffix,
-    ]);
-
-    if (handlers.length === 1) {
-      this.logger.debug(
-        `Added inbound ${handlers[0].constructor.name} at position ${
-          this.inboundMessageHandlers.length + 1
-        }`
-      );
-    } else {
-      this.logger.debug(
-        `Added ${
-          handlers.length
-        } inbound message handlers starting at position ${
-          this.inboundMessageHandlers.length + 1
-        }`
-      );
-    }
-  }
-
-  protected removeHandler(...handlers: InboundMessageHandler[]) {
-    this.inboundMessageHandlers = this.inboundMessageHandlers.filter(
-      (handler, i) => {
-        if (handlers.includes(handler)) {
-          this.logger.debug(
-            `Removed inbound ${handler.constructor.name} from position ${i}`
-          );
-          return false;
-        } else {
-          return true;
-        }
-      }
-    );
-  }
-
   protected async sendMessage(message: OutboundMessage) {
     if (!this.isListening) {
       this.logger.warn(
@@ -427,6 +382,51 @@ abstract class OcppEndpoint<
         this.logger.trace(err.stack);
       }
     }
+  }
+
+  protected addHandler(...handlers: InboundMessageHandler[]) {
+    const length = this.defaultHandlers.inboundMessage.suffix.length;
+    this.inboundMessageHandlers.splice(
+      this.inboundMessageHandlers.length - length,
+      length
+    );
+
+    this.inboundMessageHandlers = AsyncHandler.map([
+      ...this.inboundMessageHandlers,
+      ...handlers,
+      ...this.defaultHandlers.inboundMessage.suffix,
+    ]);
+
+    if (handlers.length === 1) {
+      this.logger.debug(
+        `Added inbound ${handlers[0].constructor.name} at position ${
+          this.inboundMessageHandlers.length - length - 1
+        }`
+      );
+    } else {
+      this.logger.debug(
+        `Added ${
+          handlers.length
+        } inbound message handlers starting at position ${
+          this.inboundMessageHandlers.length - length - 1
+        }`
+      );
+    }
+  }
+
+  protected removeHandler(...handlers: InboundMessageHandler[]) {
+    this.inboundMessageHandlers = this.inboundMessageHandlers.filter(
+      (handler, i) => {
+        if (handlers.includes(handler)) {
+          this.logger.debug(
+            `Removed inbound ${handler.constructor.name} from position ${i}`
+          );
+          return false;
+        } else {
+          return true;
+        }
+      }
+    );
   }
 }
 
