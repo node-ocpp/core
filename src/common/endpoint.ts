@@ -226,7 +226,7 @@ abstract class OcppEndpoint<
 
   public async send<TRequest extends OutboundCall>(
     recipient: string,
-    action: CallAction<TRequest>,
+    action: OcppAction,
     data: CallPayload<TRequest>,
     id: string = randomUUID()
   ): Promise<CallResponsePayload<TRequest>> {
@@ -234,13 +234,13 @@ abstract class OcppEndpoint<
     await this.sendMessage(message);
 
     return new Promise((resolve, reject) => {
-      const callback = async (data: Payload) => {
-        this.removeHandler(responseHandler);
+      const callback = async (data: CallPayload<TRequest>) => {
+        this.removeHandler(handler);
         resolve(data as CallResponsePayload<TRequest>);
       };
-      const responseHandler = new Handlers.IdHandler(id, callback);
 
-      this.addHandler(responseHandler);
+      const handler = new Handlers.IdHandler(id, callback);
+      this.addHandler(handler);
     });
   }
 
