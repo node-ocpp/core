@@ -13,8 +13,8 @@ import LocalSessionStorage from './services/session-local';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
-import { InboundMessage, OutboundMessage, Payload } from './message';
-import { OutboundCall } from './call';
+import { InboundMessage, OutboundMessage } from './message';
+import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import * as Handlers from './handlers';
 import {
@@ -24,11 +24,7 @@ import {
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
-import {
-  CallAction,
-  CallPayload,
-  CallResponsePayload,
-} from '../types/ocpp/util';
+import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
 
 type EndpointOptions = {
   port?: number;
@@ -216,6 +212,16 @@ abstract class OcppEndpoint<
         this.emit('server_stopped');
       }
     });
+  }
+
+  public handle<TRequest extends InboundCall>(
+    action: OcppAction,
+    callback: (
+      data: CallPayload<TRequest>
+    ) => Promise<CallResponsePayload<TRequest>>
+  ) {
+    const handler = new Handlers.ActionHandler(action, callback);
+    this.addHandler(handler);
   }
 
   public async send<TRequest extends OutboundCall>(
