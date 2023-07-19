@@ -335,10 +335,12 @@ abstract class OcppEndpoint<
     );
     await this.sessionStorage.set(request.client.id, session);
 
-    this.logger.info(
-      `Client with id ${request.client.id} authenticated successfully`
-    );
-    this.emit('client_connected', request.client);
+    process.nextTick(() => {
+      this.logger.info(
+        `Client with id ${request.client.id} authenticated successfully`
+      );
+      this.emit('client_connected', request.client);
+    });
   }
 
   protected async onSessionClosed(clientId: string) {
