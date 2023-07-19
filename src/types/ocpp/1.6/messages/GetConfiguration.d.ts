@@ -2,9 +2,7 @@ import { OutboundCall } from '../../../../common/call';
 import { InboundCallResult } from '../../../../common/callresult';
 
 declare type GetConfigurationRequest = OutboundCall<
-  'GetConfiguration',
   GetConfigurationRequestPayload,
-  GetConfigurationResponsePayload,
   GetConfigurationResponse
 >;
 

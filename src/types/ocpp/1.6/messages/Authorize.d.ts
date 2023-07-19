@@ -3,9 +3,7 @@ import { OutboundCallResult } from '../../../../common/callresult';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type AuthorizeRequest = InboundCall<
-  'Authorize',
   AuthorizeRequestPayload,
-  AuthorizeResponsePayload,
   AuthorizeResponse
 >;
 

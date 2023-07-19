@@ -4,9 +4,7 @@ import ChargingProfile from '../structs/ChargingProfile';
 import RemoteStartStopStatus from '../structs/RemoteStartStopStatus';
 
 declare type RemoteStartTransactionRequest = OutboundCall<
-  'RemoteStartTransaction',
   RemoteStartTransactionRequestPayload,
-  RemoteStartTransactionResponsePayload,
   RemoteStartTransactionResponse
 >;
 

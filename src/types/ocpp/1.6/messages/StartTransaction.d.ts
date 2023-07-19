@@ -3,9 +3,7 @@ import { OutboundCallResult } from '../../../../common/callresult';
 import IdTagInfo from '../structs/IdTagInfo';
 
 declare type StartTransactionRequest = InboundCall<
-  'StartTransaction',
   StartTransactionRequestPayload,
-  StartTransactionResponsePayload,
   StartTransactionResponse
 >;
 

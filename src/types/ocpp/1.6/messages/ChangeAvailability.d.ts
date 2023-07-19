@@ -2,9 +2,7 @@ import { OutboundCall } from '../../../../common/call';
 import { InboundCallResult } from '../../../../common/callresult';
 
 declare type ChangeAvailabilityRequest = OutboundCall<
-  'ChangeAvailability',
   ChangeAvailabilityRequestPayload,
-  ChangeAvailabilityResponsePayload,
   ChangeAvailabilityResponse
 >;
 

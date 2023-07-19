@@ -3,9 +3,7 @@ import { InboundCallResult } from '../../../../common/callresult';
 import RemoteStartStopStatus from '../structs/RemoteStartStopStatus';
 
 declare type RemoteStopTransactionRequest = OutboundCall<
-  'RemoteStopTransaction',
   RemoteStopTransactionRequestPayload,
-  RemoteStopTransactionResponsePayload,
   RemoteStopTransationResponse
 >;
 

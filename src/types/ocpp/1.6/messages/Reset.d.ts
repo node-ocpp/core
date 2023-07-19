@@ -1,12 +1,7 @@
 import { OutboundCall } from '../../../../common/call';
 import { InboundCallResult } from '../../../../common/callresult';
 
-declare type ResetRequest = OutboundCall<
-  'Reset',
-  ResetRequestPayload,
-  ResetResponsePayload,
-  ResetResponse
->;
+declare type ResetRequest = OutboundCall<ResetRequestPayload, ResetResponse>;
 
 declare type ResetRequestPayload = {
   type: ResetType;
