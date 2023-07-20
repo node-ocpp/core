@@ -1,12 +1,10 @@
 import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WsServer, ServerOptions } from 'ws';
 import path from 'path';
-import { promises as fsPromises } from 'fs';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
 import { Logger } from 'ts-log';
 import { oneLine, oneLineInlineLists } from 'common-tags';
-import { validate as validateJsonSchema } from 'jsonschema';
 import basicAuth from 'basic-auth';
 import merge from 'lodash.merge';
 
@@ -25,6 +23,7 @@ import {
   AuthenticationRequest,
   OutboundMessageHandler,
 } from '../common/handler';
+import WsValidator from './ws-validator';
 
 type WsOptions = EndpointOptions & {
   route?: string;
@@ -32,14 +31,12 @@ type WsOptions = EndpointOptions & {
   basicAuth?: boolean;
   certificateAuth?: boolean;
   schemaValidation?: boolean;
-  schemaDir?: Map<ProtocolVersion[], string>;
   wsServerOptions?: ServerOptions;
 };
 
 class WsEndpoint extends OcppEndpoint<WsOptions> {
   protected wsServer: WsServer;
-  protected requestSchemas: Map<OcppAction, Record<string, any>>;
-  protected responseSchemas: Map<OcppAction, Record<string, any>>;
+  protected validator: WsValidator;
 
   constructor(
     options: WsOptions,
@@ -47,7 +44,8 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     inboundMessageHandlers: InboundMessageHandler[],
     outboundMessageHandlers?: OutboundMessageHandler[],
     sessionStorage?: SessionStorage,
-    logger?: Logger
+    logger?: Logger,
+    validator: WsValidator = new WsValidator()
   ) {
     super(
       options,
@@ -58,28 +56,19 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       logger
     );
     this.wsServer = new WsServer(this.options.wsServerOptions);
+    this.validator = validator;
+
     this.httpServer.on('upgrade', this.onHttpUpgrade);
     this.wsServer.on('connection', this.onWsConnected);
-
-    this.requestSchemas = new Map();
-    this.responseSchemas = new Map();
   }
 
   protected get defaultOptions() {
-    const schemaBase = path.join(__dirname, '../../../var/jsonschema');
-
     const options: WsOptions = {
       route: 'ocpp',
       protocols: ProtocolVersions,
       basicAuth: true,
       certificateAuth: true,
       schemaValidation: true,
-      schemaDir: new Map([
-        // OCPP <= 1.6    /var/jsonschema/ocpp1.6
-        [['ocpp1.2', 'ocpp1.5', 'ocpp1.6'], path.join(schemaBase, 'ocpp1.6')],
-        // OCPP >= 2.0    /var/jsonschema/ocpp2.0.1
-        [['ocpp2.0', 'ocpp2.0.1'], path.join(schemaBase, 'ocpp2.0.1')],
-      ]),
       wsServerOptions: { noServer: true },
     };
 
@@ -108,7 +97,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         const dateToString = (key: string, value: string) => value;
         const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
 
-        const messageValidation = await this.validateSchema(
+        const messageValidation = await this.validator.validate(
           message.type,
           message.action || session.pendingInboundMessage.action,
           rawData,
@@ -116,16 +105,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         );
 
         if (!messageValidation?.valid) {
-          this.logger.warn(
-            oneLine`Outbound ${MessageType[message.type]}
-            message payload is not valid`
-          );
-          this.logger.trace(messageValidation.errors);
           return;
-        } else {
-          this.logger.debug(
-            `Outbound ${MessageType[message.type]} message payload is valid`
-          );
         }
       }
 
@@ -350,7 +330,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         const session = await this.sessionStorage.get(client.id);
         const lastOutboundCall = session?.lastOutboundMessage as OutboundCall;
 
-        const messageValidation = await this.validateSchema(
+        const messageValidation = await this.validator.validate(
           type,
           action || lastOutboundCall.action,
           payload,
@@ -358,15 +338,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
         );
 
         if (!messageValidation?.valid) {
-          this.logger.warn(
-            `Inbound ${MessageType[type]} message payload is not valid`
-          );
-          this.logger.trace(messageValidation.errors);
           return;
-        } else {
-          this.logger.debug(
-            `Inbound ${MessageType[type]} message payload is valid`
-          );
         }
       }
 
@@ -473,81 +445,6 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       errorDescription,
       errorDetails,
     };
-  }
-
-  protected async validateSchema(
-    type: MessageType.CALL | MessageType.CALLRESULT,
-    action: OcppAction,
-    payload: Payload,
-    protocol: ProtocolVersion
-  ) {
-    let schema: Record<string, any>;
-    let schemaType: 'request' | 'response';
-    let schemaMap: Map<OcppAction, Record<string, any>>;
-
-    switch (type) {
-      case MessageType.CALL:
-        schemaType = 'request';
-        schemaMap = this.requestSchemas;
-        break;
-
-      case MessageType.CALLRESULT:
-        schemaType = 'response';
-        schemaMap = this.responseSchemas;
-        break;
-    }
-
-    if (!schemaMap.has(action)) {
-      schema = await this.loadSchema(schemaType, action, protocol);
-      schemaMap.set(action, schema);
-    } else {
-      schema = schemaMap.get(action);
-    }
-
-    return validateJsonSchema(payload, schema);
-  }
-
-  protected async loadSchema(
-    type: 'request' | 'response',
-    action: OcppAction,
-    protocol: ProtocolVersion
-  ) {
-    let schemaDir: string;
-    this.options.schemaDir.forEach((dir, protocols) => {
-      if (protocols.includes(protocol)) {
-        schemaDir = dir;
-      }
-    });
-
-    if (!schemaDir) {
-      throw new Error(
-        `Missing schema directory for protocol
-        ${protocol} in WebSocket endpoint config`
-      );
-    }
-
-    const schemaPath = path.join(schemaDir, `${action}R${type.slice(1)}.json`);
-
-    let rawSchema: string;
-    try {
-      rawSchema = await (await fsPromises.readFile(schemaPath)).toString();
-    } catch (err) {
-      throw new Error(
-        `Error while attempting to read JSON schema from file: ${schemaPath}`,
-        { cause: err as any }
-      );
-    }
-
-    let jsonSchema: Record<string, any>;
-    try {
-      jsonSchema = JSON.parse(rawSchema);
-    } catch (err) {
-      throw new Error('Error while attempting to parse JSON schema', {
-        cause: err as any,
-      });
-    }
-
-    return jsonSchema;
   }
 }
 
