@@ -1,3 +1,5 @@
+import { Logger } from 'ts-log';
+
 interface Handler<TRequest> {
   handle(request: TRequest): Promise<TRequest | void>;
   set next(handler: Handler<TRequest>);
@@ -29,12 +31,24 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
 }
 
 class HandlerChain<THandler extends Handler<unknown>> {
+  private logger: Logger;
   private handlers: THandler[];
 
-  constructor(...handlers: THandler[]) {
+  constructor(logger: Logger, ...handlers: THandler[]) {
+    this.logger = logger;
+
     this.handlers = handlers.map((handler, i) => {
       handler.next = this.handlers[i + 1];
       return handler;
+    });
+
+    this.logger.debug(
+      `Loaded ${this.length} handlers of type${
+        Object.getPrototypeOf(this.handlers[0].constructor).name
+      }`
+    );
+    this.logger.trace({
+      ...this.handlers.map(handler => handler.constructor.name),
     });
   }
 
