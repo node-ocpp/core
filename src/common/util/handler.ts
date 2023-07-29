@@ -35,7 +35,7 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
 class HandlerChain<THandler extends Handler<unknown>> {
   private handlers: THandler[];
 
-  constructor(handlers: THandler[]) {
+  constructor(...handlers: THandler[]) {
     this.handlers = handlers;
     this.mapHandlers();
   }
@@ -44,12 +44,12 @@ class HandlerChain<THandler extends Handler<unknown>> {
     return await this.handlers[0].handle(request);
   }
 
-  addHandler(handler: THandler, pos: number = this.length) {
+  add(handler: THandler, pos: number = this.size) {
     this.handlers.splice(pos, 0, handler);
     this.mapHandlers();
   }
 
-  removeHandler(handler: THandler) {
+  remove(handler: THandler) {
     this.handlers = this.handlers.filter(_handler => _handler === handler);
     this.mapHandlers();
   }
@@ -61,7 +61,7 @@ class HandlerChain<THandler extends Handler<unknown>> {
     });
   }
 
-  get length() {
+  get size() {
     return this.handlers.length;
   }
 
