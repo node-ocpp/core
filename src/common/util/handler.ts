@@ -1,5 +1,3 @@
-import { Logger } from 'ts-log';
-
 interface Handler<TRequest> {
   handle(request: TRequest): Promise<TRequest | void>;
   set next(handler: Handler<TRequest>);
@@ -35,22 +33,11 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
 }
 
 class HandlerChain<THandler extends Handler<unknown>> {
-  private logger: Logger;
   private handlers: THandler[];
 
-  constructor(logger: Logger, ...handlers: THandler[]) {
-    this.logger = logger;
+  constructor(handlers: THandler[]) {
     this.handlers = handlers;
     this.mapHandlers();
-
-    this.logger.debug(
-      `Loaded ${this.length} handler(s) of type ${
-        Object.getPrototypeOf(this.handlers[0].constructor).name
-      }`
-    );
-    this.logger.trace({
-      ...this.handlers.map(handler => handler.constructor.name),
-    });
   }
 
   async handle(request: HandlerRequest<THandler>) {
@@ -58,12 +45,6 @@ class HandlerChain<THandler extends Handler<unknown>> {
   }
 
   addHandler(handler: THandler, pos: number = this.length) {
-    if (pos > this.length) {
-      this.logger.error(`addHandler() was called with invalid position ${pos}`);
-      this.logger.trace(new Error().stack);
-      return;
-    }
-
     this.handlers.splice(pos, 0, handler);
     this.mapHandlers();
   }
@@ -82,6 +63,14 @@ class HandlerChain<THandler extends Handler<unknown>> {
 
   get length() {
     return this.handlers.length;
+  }
+
+  toString() {
+    return JSON.stringify(
+      { ...this.handlers.map(handler => handler.constructor.name) },
+      null,
+      '  '
+    );
   }
 }
 
