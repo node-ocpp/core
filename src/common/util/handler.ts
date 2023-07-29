@@ -1,4 +1,9 @@
-abstract class AsyncHandler<TRequest> {
+interface Handler<TRequest> {
+  handle(request: TRequest): Promise<TRequest | void>;
+  set next(handler: Handler<TRequest>);
+}
+
+abstract class AsyncHandler<TRequest> implements Handler<TRequest> {
   private _next!: AsyncHandler<TRequest>;
 
   set next(handler: AsyncHandler<TRequest>) {
@@ -23,4 +28,5 @@ abstract class AsyncHandler<TRequest> {
   }
 }
 
+export default Handler;
 export { AsyncHandler };
