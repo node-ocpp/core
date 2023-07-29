@@ -28,5 +28,20 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
   }
 }
 
+class HandlerChain<THandler extends Handler<unknown>> {
+  private handlers: THandler[];
+
+  constructor(...handlers: THandler[]) {
+    this.handlers = handlers.map((handler, i) => {
+      handler.next = this.handlers[i + 1];
+      return handler;
+    });
+  }
+
+  get length() {
+    return this.handlers.length;
+  }
+}
+
 export default Handler;
-export { BaseHandler };
+export { BaseHandler, HandlerChain };
