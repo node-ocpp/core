@@ -5,6 +5,10 @@ interface Handler<TRequest> {
   set next(handler: Handler<TRequest>);
 }
 
+type HandlerRequest<THandler> = THandler extends Handler<infer TRequest>
+  ? TRequest
+  : never;
+
 abstract class BaseHandler<TRequest> implements Handler<TRequest> {
   private _next!: BaseHandler<TRequest>;
 
@@ -43,13 +47,17 @@ class HandlerChain<THandler extends Handler<unknown>> {
     });
 
     this.logger.debug(
-      `Loaded ${this.length} handlers of type${
+      `Loaded ${this.length} handlers of type ${
         Object.getPrototypeOf(this.handlers[0].constructor).name
       }`
     );
     this.logger.trace({
       ...this.handlers.map(handler => handler.constructor.name),
     });
+  }
+
+  async handle(request: HandlerRequest<THandler>) {
+    return await this.handlers[0].handle(request);
   }
 
   get length() {
