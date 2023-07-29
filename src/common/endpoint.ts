@@ -18,7 +18,7 @@ import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import * as Handlers from './handlers';
 import {
-  AsyncHandler,
+  BaseHandler,
   AuthenticationHandler,
   AuthenticationRequest,
   InboundMessageHandler,
@@ -89,7 +89,7 @@ abstract class OcppEndpoint<
 
     this.sessionStorage = sessionStorage;
 
-    this.authenticationHandlers = AsyncHandler.map([
+    this.authenticationHandlers = BaseHandler.map([
       ...this.defaultHandlers.authentication.prefix,
       ...authenticationHandlers,
       ...this.defaultHandlers.authentication.suffix,
@@ -101,7 +101,7 @@ abstract class OcppEndpoint<
       ...this.authenticationHandlers.map(handler => handler.constructor.name),
     });
 
-    this.inboundMessageHandlers = AsyncHandler.map([
+    this.inboundMessageHandlers = BaseHandler.map([
       ...this.defaultHandlers.inboundMessage.prefix,
       ...inboundMessageHandlers,
       ...this.defaultHandlers.inboundMessage.suffix,
@@ -113,7 +113,7 @@ abstract class OcppEndpoint<
       ...this.inboundMessageHandlers.map(handler => handler.constructor.name),
     });
 
-    this.outboundMessageHandlers = AsyncHandler.map([
+    this.outboundMessageHandlers = BaseHandler.map([
       ...this.defaultHandlers.outboundMessage.prefix,
       ...outboundMessageHandlers,
       ...this.defaultHandlers.outboundMessage.suffix,
@@ -391,7 +391,7 @@ abstract class OcppEndpoint<
       length
     );
 
-    this.inboundMessageHandlers = AsyncHandler.map([
+    this.inboundMessageHandlers = BaseHandler.map([
       ...this.inboundMessageHandlers,
       ...handlers,
       ...this.defaultHandlers.inboundMessage.suffix,

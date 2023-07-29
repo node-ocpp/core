@@ -3,10 +3,10 @@ interface Handler<TRequest> {
   set next(handler: Handler<TRequest>);
 }
 
-abstract class AsyncHandler<TRequest> implements Handler<TRequest> {
-  private _next!: AsyncHandler<TRequest>;
+abstract class BaseHandler<TRequest> implements Handler<TRequest> {
+  private _next!: BaseHandler<TRequest>;
 
-  set next(handler: AsyncHandler<TRequest>) {
+  set next(handler: BaseHandler<TRequest>) {
     this._next = handler;
   }
 
@@ -18,7 +18,7 @@ abstract class AsyncHandler<TRequest> implements Handler<TRequest> {
     return null as any;
   }
 
-  static map<THandler extends AsyncHandler<unknown>>(
+  static map<THandler extends BaseHandler<unknown>>(
     handlers: THandler[]
   ): THandler[] {
     return handlers.map((handler, i) => {
@@ -29,4 +29,4 @@ abstract class AsyncHandler<TRequest> implements Handler<TRequest> {
 }
 
 export default Handler;
-export { AsyncHandler };
+export { BaseHandler };
