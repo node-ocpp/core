@@ -40,14 +40,11 @@ class HandlerChain<THandler extends Handler<unknown>> {
 
   constructor(logger: Logger, ...handlers: THandler[]) {
     this.logger = logger;
-
-    this.handlers = handlers.map((handler, i) => {
-      handler.next = this.handlers[i + 1];
-      return handler;
-    });
+    this.handlers = handlers;
+    this.mapHandlers();
 
     this.logger.debug(
-      `Loaded ${this.length} handlers of type ${
+      `Loaded ${this.length} handler(s) of type ${
         Object.getPrototypeOf(this.handlers[0].constructor).name
       }`
     );
@@ -58,6 +55,29 @@ class HandlerChain<THandler extends Handler<unknown>> {
 
   async handle(request: HandlerRequest<THandler>) {
     return await this.handlers[0].handle(request);
+  }
+
+  addHandler(handler: THandler, pos: number = this.length) {
+    if (pos > this.length) {
+      this.logger.error(`addHandler() was called with invalid position ${pos}`);
+      this.logger.trace(new Error().stack);
+      return;
+    }
+
+    this.handlers.splice(pos, 0, handler);
+    this.mapHandlers();
+  }
+
+  removeHandler(handler: THandler) {
+    this.handlers = this.handlers.filter(_handler => _handler === handler);
+    this.mapHandlers();
+  }
+
+  private mapHandlers() {
+    this.handlers = this.handlers.map((handler, i) => {
+      handler.next = this.handlers[i + 1];
+      return handler;
+    });
   }
 
   get length() {
