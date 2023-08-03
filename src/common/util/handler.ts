@@ -65,14 +65,13 @@ class HandlerChain<
   }
 
   remove(handler: THandler) {
-    this.handlers = this.handlers.filter(_handler => _handler === handler);
+    this.handlers = this.handlers.filter(_handler => _handler !== handler);
     this.mapHandlers();
   }
 
   private mapHandlers() {
-    this.handlers = this.handlers.map((handler, i) => {
-      handler.next = this.handlers[i + 1];
-      return handler;
+    this.handlers.forEach((handler, i, handlers) => {
+      handler.next = handlers[i + 1];
     });
   }
 
