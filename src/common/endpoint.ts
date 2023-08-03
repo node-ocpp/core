@@ -39,7 +39,7 @@ type EndpointEvents = {
 };
 
 abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
-  protected _options: EndpointOptions;
+  readonly options: EndpointOptions;
 
   protected httpServer: HttpServer;
   protected sessionStorage: SessionStorage;
@@ -64,9 +64,9 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     super();
     this.logger = logger;
 
-    this._options = _.merge(defaultOptions, options);
+    this.options = _.merge(defaultOptions, options);
     this.logger.debug('Loaded endpoint configuration');
-    this.logger.trace(this._options);
+    this.logger.trace(this.options);
 
     this.httpServer = http.createServer();
     this.httpServer.on('error', this.onHttpError);
@@ -101,10 +101,6 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());
-  }
-
-  public get options() {
-    return this._options;
   }
 
   public get isListening() {
