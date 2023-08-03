@@ -41,13 +41,11 @@ class HandlerChain<
   private handlers: THandler[];
 
   constructor(...handlers: Array<THandler | HandlerFunction<TRequest>>) {
-    handlers = handlers.map(handler =>
+    this.handlers = handlers.map(handler =>
       typeof handler === 'function'
         ? (BaseHandler.fromFunction(handler) as THandler)
         : handler
     );
-
-    this.handlers = handlers as THandler[];
     this.mapHandlers();
   }
 
