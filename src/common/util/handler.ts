@@ -28,8 +28,10 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
   }
 
   static fromFunction<TRequest>(handler: HandlerFunction<TRequest>) {
-    return new (class extends BaseHandler<TRequest> {
-      handle = handler as HandlerFunction<TRequest>;
+    return new (class AnonymousHandler extends BaseHandler<TRequest> {
+      async handle(request: TRequest) {
+        return await super.handle(await handler(request));
+      }
     })() as Handler<TRequest>;
   }
 }
