@@ -35,6 +35,10 @@ type EndpointOptions = {
   maxConnections?: number;
   sessionTimeout?: number;
   httpServerOptions?: ServerOptions;
+  route?: string;
+  basicAuth?: boolean;
+  certificateAuth?: boolean;
+  validation?: boolean;
 };
 
 type EndpointEvents = {
@@ -50,10 +54,8 @@ type EndpointEvents = {
   message_received: (message: InboundMessage) => void;
 };
 
-abstract class OcppEndpoint<
-  TConfig extends EndpointOptions
-> extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
-  protected _options: TConfig;
+abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
+  protected _options: EndpointOptions;
 
   protected httpServer: HttpServer;
   protected sessionStorage: SessionStorage;
@@ -68,7 +70,7 @@ abstract class OcppEndpoint<
   protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
-    options: TConfig,
+    options: EndpointOptions,
     authHandlers: AuthenticationHandler[],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
@@ -129,6 +131,9 @@ abstract class OcppEndpoint<
       maxConnections: 511,
       sessionTimeout: 30000,
       httpServerOptions: {},
+      basicAuth: true,
+      certificateAuth: true,
+      validation: true,
     } as EndpointOptions;
   }
 

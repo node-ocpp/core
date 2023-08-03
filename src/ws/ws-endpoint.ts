@@ -25,16 +25,9 @@ import {
 } from '../common/handler';
 import WsValidator from './ws-validator';
 
-type WsOptions = EndpointOptions & {
-  route?: string;
-  protocols?: Readonly<ProtocolVersion[]>;
-  basicAuth?: boolean;
-  certificateAuth?: boolean;
-  schemaValidation?: boolean;
-  wsServerOptions?: ServerOptions;
-};
+type WsOptions = EndpointOptions & {};
 
-class WsEndpoint extends OcppEndpoint<WsOptions> {
+class WsEndpoint extends OcppEndpoint {
   protected wsServer: WsServer;
   protected validator: WsValidator;
   protected _sendHandler: OutboundMessageHandler;
@@ -56,24 +49,11 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       sessionStorage,
       logger
     );
-    this.wsServer = new WsServer(this.options.wsServerOptions);
+    this.wsServer = new WsServer({ noServer: true });
     this.validator = validator;
 
     this.httpServer.on('upgrade', this.onHttpUpgrade);
     this.wsServer.on('connection', this.onWsConnected);
-  }
-
-  protected get defaultOptions() {
-    const options: WsOptions = {
-      route: 'ocpp',
-      protocols: ProtocolVersions,
-      basicAuth: true,
-      certificateAuth: true,
-      schemaValidation: true,
-      wsServerOptions: { noServer: true },
-    };
-
-    return _.merge(super.defaultOptions, options);
   }
 
   public hasSession(clientId: string) {
@@ -109,7 +89,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     }
 
     if (
-      this.options.schemaValidation &&
+      this.options.validation &&
       (message instanceof OutboundCall || message instanceof OutboundCallResult)
     ) {
       const dateToString = (key: string, value: string) => value;
@@ -323,7 +303,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       } = messageProperties;
 
       if (
-        this.options.schemaValidation &&
+        this.options.validation &&
         (type === MessageType.CALL || type === MessageType.CALLRESULT)
       ) {
         const session = await this.sessionStorage.get(client.id);
