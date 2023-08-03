@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "build",
+    "noImplicitReturns": false,
     "strictNullChecks": false,
     "esModuleInterop": true,
     "lib": ["es2022"]

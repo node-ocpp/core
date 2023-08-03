@@ -1,8 +1,11 @@
 interface Handler<TRequest> {
-  handle(request: TRequest): Promise<TRequest | void>;
+  handle: HandlerFunction<TRequest>;
   set next(handler: Handler<TRequest>);
 }
 
+type HandlerFunction<TRequest> = (request: TRequest) => Promise<TRequest>;
+
+// Infer Request type from Handler
 type HandlerRequest<THandler> = THandler extends Handler<infer TRequest>
   ? TRequest
   : never;
@@ -14,7 +17,7 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
     this._next = handler;
   }
 
-  handle(request: TRequest): Promise<TRequest | void> {
+  handle(request: TRequest): Promise<TRequest> {
     if (this._next) {
       return this._next.handle(request);
     }
@@ -22,21 +25,27 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
     return null as any;
   }
 
-  static map<THandler extends BaseHandler<unknown>>(
-    handlers: THandler[]
-  ): THandler[] {
-    return handlers.map((handler, i) => {
-      handler.next = handlers[i + 1];
-      return handler;
-    });
+  static fromFunction<TRequest>(handler: HandlerFunction<TRequest>) {
+    return new (class extends BaseHandler<TRequest> {
+      handle = handler as HandlerFunction<TRequest>;
+    })() as Handler<TRequest>;
   }
 }
 
-class HandlerChain<THandler extends Handler<unknown>> {
+class HandlerChain<
+  THandler extends Handler<TRequest>,
+  TRequest = HandlerRequest<THandler>
+> {
   private handlers: THandler[];
 
-  constructor(...handlers: THandler[]) {
-    this.handlers = handlers;
+  constructor(...handlers: Array<THandler | HandlerFunction<TRequest>>) {
+    handlers = handlers.map(handler =>
+      typeof handler === 'function'
+        ? (BaseHandler.fromFunction(handler) as THandler)
+        : handler
+    );
+
+    this.handlers = handlers as THandler[];
     this.mapHandlers();
   }
 
@@ -44,7 +53,11 @@ class HandlerChain<THandler extends Handler<unknown>> {
     return await this.handlers[0].handle(request);
   }
 
-  add(handler: THandler, pos: number = this.size) {
+  add(handler: THandler | HandlerFunction<TRequest>, pos: number = this.size) {
+    if (typeof handler === 'function') {
+      handler = BaseHandler.fromFunction(handler) as THandler;
+    }
+
     this.handlers.splice(pos, 0, handler);
     this.mapHandlers();
   }
@@ -75,4 +88,4 @@ class HandlerChain<THandler extends Handler<unknown>> {
 }
 
 export default Handler;
-export { BaseHandler, HandlerChain };
+export { BaseHandler, HandlerChain, HandlerFunction, HandlerRequest };

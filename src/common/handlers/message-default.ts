@@ -14,7 +14,7 @@ class DefaultMessageHandler extends InboundMessageHandler {
 
   async handle(message: InboundMessage) {
     if (message instanceof RespondableMessage && message.isResponded) {
-      return;
+      return message;
     }
 
     this.logger.warn(
