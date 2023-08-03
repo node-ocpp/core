@@ -64,7 +64,7 @@ abstract class OcppEndpoint<
 
   protected abstract hasSession(clientId: string): boolean;
   protected abstract dropSession(clientId: string, force: boolean): void;
-  protected abstract get sendMessageHandler(): OutboundMessageHandler;
+  protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
     options: TConfig,

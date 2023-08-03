@@ -1,6 +1,6 @@
 import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WsServer, ServerOptions } from 'ws';
-import path from 'path';
+import path, { resolve } from 'path';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
 import { Logger } from 'ts-log';
@@ -37,21 +37,22 @@ type WsOptions = EndpointOptions & {
 class WsEndpoint extends OcppEndpoint<WsOptions> {
   protected wsServer: WsServer;
   protected validator: WsValidator;
+  protected _sendHandler: OutboundMessageHandler;
 
   constructor(
     options: WsOptions,
-    authenticationHandlers: AuthenticationHandler[],
-    inboundMessageHandlers: InboundMessageHandler[],
-    outboundMessageHandlers?: OutboundMessageHandler[],
+    authHandlers: AuthenticationHandler[],
+    inboundHandlers?: InboundMessageHandler[],
+    outboundHandlers?: OutboundMessageHandler[],
     sessionStorage?: SessionStorage,
     logger?: Logger,
     validator: WsValidator = new WsValidator()
   ) {
     super(
       options,
-      authenticationHandlers,
-      inboundMessageHandlers,
-      outboundMessageHandlers,
+      authHandlers,
+      inboundHandlers,
+      outboundHandlers,
       sessionStorage,
       logger
     );
@@ -75,51 +76,6 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
     return merge(super.defaultOptions, options);
   }
 
-  protected get sendMessageHandler() {
-    const handleSend = async (message: OutboundMessage) => {
-      const ws = this.getSocket(message.recipient.id);
-      const session = await this.sessionStorage.get(message.recipient.id);
-
-      const messageArr: any[] = [message.type, message.id];
-      if (message instanceof OutboundCall) {
-        messageArr.push(message.action, message.data);
-      } else if (message instanceof OutboundCallResult) {
-        messageArr.push(message.data);
-      } else if (message instanceof OutboundCallError) {
-        messageArr.push(message.code, message.description, message.details);
-      }
-
-      if (
-        this.options.schemaValidation &&
-        (message instanceof OutboundCall ||
-          message instanceof OutboundCallResult)
-      ) {
-        const dateToString = (key: string, value: string) => value;
-        const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
-
-        const messageValidation = await this.validator.validate(
-          message.type,
-          message.action || session.pendingInboundMessage.action,
-          rawData,
-          ws.protocol as ProtocolVersion
-        );
-
-        if (!messageValidation?.valid) {
-          return;
-        }
-      }
-
-      ws.send(JSON.stringify(messageArr));
-    };
-
-    return new (class extends OutboundMessageHandler {
-      async handle(message: OutboundMessage) {
-        await handleSend(message);
-        return await super.handle(message);
-      }
-    })() as OutboundMessageHandler;
-  }
-
   public hasSession(clientId: string) {
     return this.getSocket(clientId)?.readyState === WebSocket.OPEN;
   }
@@ -138,6 +94,49 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       ws.close(code, data);
     }
   }
+
+  protected handleSend = async (message: OutboundMessage) => {
+    const ws = this.getSocket(message.recipient.id);
+    const session = await this.sessionStorage.get(message.recipient.id);
+
+    const messageArr: any[] = [message.type, message.id];
+    if (message instanceof OutboundCall) {
+      messageArr.push(message.action, message.data);
+    } else if (message instanceof OutboundCallResult) {
+      messageArr.push(message.data);
+    } else if (message instanceof OutboundCallError) {
+      messageArr.push(message.code, message.description, message.details);
+    }
+
+    if (
+      this.options.schemaValidation &&
+      (message instanceof OutboundCall || message instanceof OutboundCallResult)
+    ) {
+      const dateToString = (key: string, value: string) => value;
+      const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
+
+      const messageValidation = await this.validator.validate(
+        message.type,
+        message.action || session.pendingInboundMessage.action,
+        rawData,
+        ws.protocol as ProtocolVersion
+      );
+
+      if (!messageValidation?.valid) {
+        return;
+      }
+    }
+
+    return new Promise<OutboundMessage>((resolve, reject) => {
+      ws.send(JSON.stringify(messageArr), err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(message);
+        }
+      });
+    });
+  };
 
   protected getSocket(clientId: string) {
     let socket: WebSocket;
