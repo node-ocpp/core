@@ -27,8 +27,7 @@
     "basic-auth": "^2.0.1",
     "common-tags": "^1.8.2",
     "jsonschema": "^1.4.1",
-    "lodash.merge": "^4.6.2",
-    "lodash.pick": "^4.4.0",
+    "lodash": "^4.17.21",
     "winston": "^3.8.2",
     "ws": "^8.8.1"
   },

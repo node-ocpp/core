@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
-import merge from 'lodash.merge';
+import _ from 'lodash';
 
 import defaultLogger from './util/logger';
 import { HandlerChain, HandlerFunction } from './util/handler';
@@ -78,7 +78,7 @@ abstract class OcppEndpoint<
     super();
     this.logger = logger;
 
-    this._options = merge(this.defaultOptions, options);
+    this._options = _.merge(this.defaultOptions, options);
     this.logger.debug('Loaded endpoint configuration');
     this.logger.trace(this._options);
 

@@ -1,6 +1,6 @@
 import { Logger } from 'ts-log';
 import winston, { format, transports } from 'winston';
-import pick from 'lodash.pick';
+import _ from 'lodash';
 
 import OcppMessage from '../message';
 
@@ -28,7 +28,7 @@ const config = {
     format.printf(log => {
       if (log.message instanceof OcppMessage) {
         return JSON.stringify(
-          pick(log.message, [
+          _.pick(log.message, [
             'id',
             'type',
             'action',

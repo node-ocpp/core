@@ -1,12 +1,12 @@
 import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
 import { WebSocket, Server as WsServer, ServerOptions } from 'ws';
-import path, { resolve } from 'path';
+import path from 'path';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
+import basicAuth from 'basic-auth';
 import { Logger } from 'ts-log';
 import { oneLine, oneLineInlineLists } from 'common-tags';
-import basicAuth from 'basic-auth';
-import merge from 'lodash.merge';
+import _ from 'lodash';
 
 import OcppEndpoint, { EndpointOptions } from '../common/endpoint';
 import { Client, SessionStorage } from '../common/session';
@@ -73,7 +73,7 @@ class WsEndpoint extends OcppEndpoint<WsOptions> {
       wsServerOptions: { noServer: true },
     };
 
-    return merge(super.defaultOptions, options);
+    return _.merge(super.defaultOptions, options);
   }
 
   public hasSession(clientId: string) {
