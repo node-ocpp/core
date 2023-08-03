@@ -19,12 +19,12 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
     this._next = handler;
   }
 
-  handle(request: TRequest): Promise<TRequest> {
+  async handle(request: TRequest): Promise<TRequest> {
     if (this._next) {
-      return this._next.handle(request);
+      return await this._next.handle(request);
+    } else {
+      return request;
     }
-
-    return null as any;
   }
 
   static fromFunction<TRequest>(handler: HandlerFunction<TRequest>) {
