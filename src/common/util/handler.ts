@@ -1,3 +1,5 @@
+import { logObject } from './logger';
+
 interface Handler<TRequest> {
   handle: HandlerFunction<TRequest>;
   set next(handler: Handler<TRequest>);
@@ -79,11 +81,9 @@ class HandlerChain<
   }
 
   toString() {
-    return JSON.stringify(
-      { ...this.handlers.map(handler => handler.constructor.name) },
-      null,
-      '  '
-    );
+    return logObject({
+      ...this.handlers.map(handler => handler.constructor.name),
+    });
   }
 }
 

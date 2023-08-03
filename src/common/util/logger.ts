@@ -8,7 +8,7 @@ const config = {
   transports: [new transports.Console({})],
   level:
     process.env.LOG_LEVEL?.toLowerCase() ??
-    (process.env.NODE_ENV === 'development' ? 'debug' : 'info'),
+    (process.env.NODE_ENV !== 'production' ? 'debug' : 'info'),
   levels: {
     error: 0,
     warn: 1,
@@ -43,7 +43,7 @@ const config = {
       }
 
       if (typeof log.message === 'object' || Array.isArray(log.message)) {
-        return JSON.stringify(log.message, null, '  ');
+        log.message = logObject(log.message);
       }
 
       return `${log.timestamp} [${log.level}] ` + log.message;
@@ -53,4 +53,7 @@ const config = {
 
 winston.addColors({ trace: 'grey' });
 
+const logObject = (object: object) => JSON.stringify(object, null, '  ');
+
 export default winston.createLogger(config) as unknown as Logger;
+export { logObject };
