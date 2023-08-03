@@ -1,12 +1,11 @@
 import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
-import { WebSocket, Server as WsServer, ServerOptions } from 'ws';
+import { WebSocket, Server as WsServer } from 'ws';
 import path from 'path';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
 import basicAuth from 'basic-auth';
 import { Logger } from 'ts-log';
 import { oneLine, oneLineInlineLists } from 'common-tags';
-import _ from 'lodash';
 
 import OcppEndpoint, { EndpointOptions } from '../common/endpoint';
 import { Client, SessionStorage } from '../common/session';
@@ -14,7 +13,7 @@ import { InboundMessage, OutboundMessage, Payload } from '../common/message';
 import { InboundCall, OutboundCall } from '../common/call';
 import { InboundCallResult, OutboundCallResult } from '../common/callresult';
 import { InboundCallError, OutboundCallError } from '../common/callerror';
-import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
+import ProtocolVersion from '../types/ocpp/version';
 import MessageType from '../types/ocpp/type';
 import OcppAction from '../types/ocpp/action';
 import {

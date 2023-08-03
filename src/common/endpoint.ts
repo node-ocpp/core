@@ -1,5 +1,4 @@
-import http, { Server as HttpServer, ServerOptions } from 'http';
-import https from 'https';
+import http, { Server as HttpServer } from 'http';
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
@@ -12,8 +11,7 @@ import { HandlerChain, HandlerFunction } from './util/handler';
 import * as Handlers from './handlers';
 import Session, { SessionStorage, Client } from './session';
 import LocalSessionStorage from './services/session-local';
-import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
-import OcppAction, { OcppActions } from '../types/ocpp/action';
+import OcppAction from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
 import { InboundCall, OutboundCall } from './call';
@@ -25,21 +23,7 @@ import {
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
-
-type EndpointOptions = {
-  port?: number;
-  hostname?: string;
-  https?: boolean;
-  protocols?: Readonly<ProtocolVersion[]>;
-  actionsAllowed?: Readonly<OcppAction[]>;
-  maxConnections?: number;
-  sessionTimeout?: number;
-  httpServerOptions?: ServerOptions;
-  route?: string;
-  basicAuth?: boolean;
-  certificateAuth?: boolean;
-  validation?: boolean;
-};
+import EndpointOptions, { defaultOptions } from './options';
 
 type EndpointEvents = {
   server_starting: (config: EndpointOptions) => void;
@@ -80,13 +64,11 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     super();
     this.logger = logger;
 
-    this._options = _.merge(this.defaultOptions, options);
+    this._options = _.merge(defaultOptions, options);
     this.logger.debug('Loaded endpoint configuration');
     this.logger.trace(this._options);
 
-    this.httpServer = this.options.https
-      ? https.createServer(this.options.httpServerOptions)
-      : http.createServer(this.options.httpServerOptions);
+    this.httpServer = http.createServer();
     this.httpServer.on('error', this.onHttpError);
     this.logger.debug('Created HTTP(S) server instance');
 
@@ -119,22 +101,6 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());
-  }
-
-  protected get defaultOptions() {
-    return {
-      port:
-        process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
-      hostname: 'localhost',
-      protocols: ProtocolVersions,
-      actionsAllowed: OcppActions,
-      maxConnections: 511,
-      sessionTimeout: 30000,
-      httpServerOptions: {},
-      basicAuth: true,
-      certificateAuth: true,
-      validation: true,
-    } as EndpointOptions;
   }
 
   public get options() {
