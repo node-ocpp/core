@@ -1,11 +1,11 @@
-import { AsyncHandler } from './util/handler';
+import { BaseHandler } from './util/handler';
 import { Client } from './session';
 import OcppMessage, { InboundMessage, OutboundMessage } from './message';
 import ProtocolVersion from '../types/ocpp/version';
 
 abstract class AuthenticationHandler<
   TRequest extends AuthenticationRequest = AuthenticationRequest
-> extends AsyncHandler<TRequest> {}
+> extends BaseHandler<TRequest> {}
 
 abstract class AuthenticationRequest {
   private _accepted: boolean;
@@ -61,7 +61,7 @@ abstract class AuthenticationRequest {
 
 abstract class OcppMessageHandler<
   TMessage extends OcppMessage = OcppMessage
-> extends AsyncHandler<TMessage> {}
+> extends BaseHandler<TMessage> {}
 
 abstract class InboundMessageHandler<
   TMessage extends InboundMessage = InboundMessage
@@ -76,7 +76,7 @@ type ResponseHandler<TResponse extends OutboundMessage> = (
 ) => Promise<void>;
 
 export {
-  AsyncHandler,
+  BaseHandler,
   AuthenticationHandler,
   AuthenticationRequest,
   InboundMessageHandler,

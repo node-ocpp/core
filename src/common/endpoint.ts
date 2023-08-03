@@ -7,7 +7,9 @@ import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 import merge from 'lodash.merge';
 
-import winstonLogger from './util/logger';
+import defaultLogger from './util/logger';
+import { HandlerChain, HandlerFunction } from './util/handler';
+import * as Handlers from './handlers';
 import Session, { SessionStorage, Client } from './session';
 import LocalSessionStorage from './services/session-local';
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
@@ -16,15 +18,13 @@ import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
 import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
-import * as Handlers from './handlers';
+import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
 import {
-  AsyncHandler,
   AuthenticationHandler,
   AuthenticationRequest,
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
-import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
 
 type EndpointOptions = {
   port?: number;
@@ -58,21 +58,22 @@ abstract class OcppEndpoint<
   protected httpServer: HttpServer;
   protected sessionStorage: SessionStorage;
   protected logger: Logger;
-  protected authenticationHandlers: AuthenticationHandler[];
-  protected inboundMessageHandlers: InboundMessageHandler[];
-  protected outboundMessageHandlers: OutboundMessageHandler[];
+
+  protected authHandlers: HandlerChain<AuthenticationHandler>;
+  protected inboundHandlers: HandlerChain<InboundMessageHandler>;
+  protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
   protected abstract hasSession(clientId: string): boolean;
   protected abstract dropSession(clientId: string, force: boolean): void;
-  protected abstract get sendMessageHandler(): OutboundMessageHandler;
+  protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
     options: TConfig,
-    authenticationHandlers: AuthenticationHandler[],
-    inboundMessageHandlers: InboundMessageHandler[],
-    outboundMessageHandlers: OutboundMessageHandler[] = [],
+    authHandlers: AuthenticationHandler[],
+    inboundHandlers: InboundMessageHandler[] = [],
+    outboundHandlers: OutboundMessageHandler[] = [],
     sessionStorage: SessionStorage = new LocalSessionStorage(),
-    logger: Logger = winstonLogger
+    logger: Logger = defaultLogger
   ) {
     super();
     this.logger = logger;
@@ -89,46 +90,39 @@ abstract class OcppEndpoint<
 
     this.sessionStorage = sessionStorage;
 
-    this.authenticationHandlers = AsyncHandler.map([
-      ...this.defaultHandlers.authentication.prefix,
-      ...authenticationHandlers,
-      ...this.defaultHandlers.authentication.suffix,
-    ]);
-    this.logger.debug(
-      `Loaded ${this.authenticationHandlers.length} authentication handlers`
+    this.authHandlers = new HandlerChain(
+      new Handlers.SessionExistsHandler(sessionStorage, logger),
+      new Handlers.SessionTimeoutHandler(sessionStorage, logger, this.options),
+      ...authHandlers
     );
-    this.logger.trace({
-      ...this.authenticationHandlers.map(handler => handler.constructor.name),
-    });
+    this.logger.debug(`Loaded ${this.authHandlers.size} auth handlers`);
+    this.logger.trace(this.authHandlers.toString());
 
-    this.inboundMessageHandlers = AsyncHandler.map([
-      ...this.defaultHandlers.inboundMessage.prefix,
-      ...inboundMessageHandlers,
-      ...this.defaultHandlers.inboundMessage.suffix,
-    ]);
-    this.logger.debug(
-      `Loaded ${this.inboundMessageHandlers.length} inbound message handlers`
+    this.inboundHandlers = new HandlerChain(
+      new Handlers.InboundMessageSynchronicityHandler(sessionStorage, logger),
+      new Handlers.InboundPendingMessageHandler(sessionStorage),
+      new Handlers.InboundActionsAllowedHandler(this.options, logger),
+      ...inboundHandlers,
+      new Handlers.DefaultMessageHandler(logger)
     );
-    this.logger.trace({
-      ...this.inboundMessageHandlers.map(handler => handler.constructor.name),
-    });
+    this.logger.debug(`Loaded ${this.inboundHandlers.size} inbound handlers`);
+    this.logger.trace(this.inboundHandlers.toString());
 
-    this.outboundMessageHandlers = AsyncHandler.map([
-      ...this.defaultHandlers.outboundMessage.prefix,
-      ...outboundMessageHandlers,
-      ...this.defaultHandlers.outboundMessage.suffix,
-    ]);
-    this.logger.debug(
-      `Loaded ${this.outboundMessageHandlers.length} outbound message handlers`
+    this.outboundHandlers = new HandlerChain(
+      new Handlers.OutboundMessageSynchronicityHandler(sessionStorage, logger),
+      new Handlers.OutboundActionsAllowedHandler(this.options, logger),
+      ...outboundHandlers,
+      async (message: OutboundMessage) => await this.handleSend(message),
+      new Handlers.OutboundPendingMessageHandler(sessionStorage)
     );
-    this.logger.trace({
-      ...this.outboundMessageHandlers.map(handler => handler.constructor.name),
-    });
+    this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
+    this.logger.trace(this.outboundHandlers.toString());
   }
 
   protected get defaultOptions() {
     return {
-      port: process.env.NODE_ENV === 'development' ? 8080 : 80,
+      port:
+        process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
       hostname: 'localhost',
       protocols: ProtocolVersions,
       actionsAllowed: OcppActions,
@@ -136,46 +130,6 @@ abstract class OcppEndpoint<
       sessionTimeout: 30000,
       httpServerOptions: {},
     } as EndpointOptions;
-  }
-
-  protected get defaultHandlers() {
-    return {
-      authentication: {
-        prefix: <AuthenticationHandler[]>[
-          new Handlers.SessionExistsHandler(this.sessionStorage, this.logger),
-          new Handlers.SessionTimeoutHandler(
-            this.sessionStorage,
-            this.logger,
-            this.options.sessionTimeout
-          ),
-        ],
-        suffix: <AuthenticationHandler[]>[],
-      },
-      inboundMessage: {
-        prefix: [
-          new Handlers.InboundMessageSynchronicityHandler(
-            this.sessionStorage,
-            this.logger
-          ),
-          new Handlers.InboundPendingMessageHandler(this.sessionStorage),
-          new Handlers.InboundActionsAllowedHandler(this.options, this.logger),
-        ],
-        suffix: [new Handlers.DefaultMessageHandler(this.logger)],
-      },
-      outboundMessage: {
-        prefix: [
-          new Handlers.OutboundMessageSynchronicityHandler(
-            this.sessionStorage,
-            this.logger
-          ),
-          new Handlers.OutboundActionsAllowedHandler(this.options, this.logger),
-        ],
-        suffix: <OutboundMessageHandler[]>[
-          this.sendMessageHandler,
-          new Handlers.OutboundPendingMessageHandler(this.sessionStorage),
-        ],
-      },
-    };
   }
 
   public get options() {
@@ -243,7 +197,7 @@ abstract class OcppEndpoint<
     ) => Promise<CallResponsePayload<TRequest>>
   ) {
     const handler = new Handlers.ActionHandler(action, callback);
-    this.addHandler(handler);
+    this.inboundHandlers.add(handler, this.inboundHandlers.size - 2);
   }
 
   public async send<TRequest extends OutboundCall>(
@@ -257,12 +211,12 @@ abstract class OcppEndpoint<
 
     return new Promise((resolve, reject) => {
       const callback = async (data: CallPayload<TRequest>) => {
-        this.removeHandler(handler);
+        this.inboundHandlers.remove(handler);
         resolve(data as CallResponsePayload<TRequest>);
       };
 
       const handler = new Handlers.IdHandler(id, callback);
-      this.addHandler(handler);
+      this.inboundHandlers.add(handler, this.inboundHandlers.size - 2);
     });
   }
 
@@ -291,8 +245,7 @@ abstract class OcppEndpoint<
     );
     this.logger.trace(message);
 
-    await this.outboundMessageHandlers[0].handle(message);
-    message.setSent();
+    await this.outboundHandlers.handle(message);
 
     this.logger.debug(
       oneLine`${MessageType[message.type]} message to
@@ -312,7 +265,7 @@ abstract class OcppEndpoint<
     );
     this.emit('client_connecting', request.client);
 
-    await this.authenticationHandlers[0].handle(request);
+    await this.authHandlers.handle(request);
   }
 
   protected onAuthenticationFailure(request: AuthenticationRequest) {
@@ -370,7 +323,7 @@ abstract class OcppEndpoint<
     this.emit('message_received', message);
 
     try {
-      await this.inboundMessageHandlers[0].handle(message);
+      await this.inboundHandlers.handle(message);
     } catch (err: any) {
       if (err instanceof OutboundCallError) {
         await this.sendMessage(err);
@@ -382,51 +335,6 @@ abstract class OcppEndpoint<
         this.logger.trace(err.stack);
       }
     }
-  }
-
-  protected addHandler(...handlers: InboundMessageHandler[]) {
-    const length = this.defaultHandlers.inboundMessage.suffix.length;
-    this.inboundMessageHandlers.splice(
-      this.inboundMessageHandlers.length - length,
-      length
-    );
-
-    this.inboundMessageHandlers = AsyncHandler.map([
-      ...this.inboundMessageHandlers,
-      ...handlers,
-      ...this.defaultHandlers.inboundMessage.suffix,
-    ]);
-
-    if (handlers.length === 1) {
-      this.logger.debug(
-        `Added inbound ${handlers[0].constructor.name} at position ${
-          this.inboundMessageHandlers.length - length - 1
-        }`
-      );
-    } else {
-      this.logger.debug(
-        `Added ${
-          handlers.length
-        } inbound message handlers starting at position ${
-          this.inboundMessageHandlers.length - length - 1
-        }`
-      );
-    }
-  }
-
-  protected removeHandler(...handlers: InboundMessageHandler[]) {
-    this.inboundMessageHandlers = this.inboundMessageHandlers.filter(
-      (handler, i) => {
-        if (handlers.includes(handler)) {
-          this.logger.debug(
-            `Removed inbound ${handler.constructor.name} from position ${i}`
-          );
-          return false;
-        } else {
-          return true;
-        }
-      }
-    );
   }
 }
 

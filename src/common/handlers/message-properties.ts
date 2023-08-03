@@ -22,7 +22,6 @@ class ActionHandler extends InboundMessageHandler {
     }
 
     const responseData = await this.handler(message.data);
-
     if (!responseData) {
       return await super.handle(message);
     }

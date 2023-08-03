@@ -1,17 +1,25 @@
 import { SessionStorage } from '../session';
 import { AuthenticationHandler, AuthenticationRequest } from '../handler';
 import { Logger } from 'ts-log';
+import { EndpointOptions } from '../endpoint';
 
 class SessionTimeoutHandler extends AuthenticationHandler {
-  private sessionStorage;
-  private logger;
-  private timeout;
+  private sessionStorage: SessionStorage;
+  private logger: Logger;
+  private timeout: number;
+  private tolerance: number;
 
-  constructor(sessionStorage: SessionStorage, logger: Logger, timeout: number) {
+  constructor(
+    sessionStorage: SessionStorage,
+    logger: Logger,
+    options: EndpointOptions,
+    tolerance = 1.25
+  ) {
     super();
     this.sessionStorage = sessionStorage;
     this.logger = logger;
-    this.timeout = timeout;
+    this.timeout = options.sessionTimeout;
+    this.tolerance = tolerance;
   }
 
   async handle(request: AuthenticationRequest) {
@@ -32,7 +40,7 @@ class SessionTimeoutHandler extends AuthenticationHandler {
       }
     };
 
-    setTimeout(dropAfterTimeout, this.timeout * 1.25);
+    setTimeout(dropAfterTimeout, this.timeout * this.tolerance);
     return await super.handle(request);
   }
 }
