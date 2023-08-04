@@ -1,7 +1,7 @@
+import EndpointOptions from '../options';
 import { SessionStorage } from '../session';
 import { AuthenticationHandler, AuthenticationRequest } from '../handler';
 import { Logger } from 'ts-log';
-import { EndpointOptions } from '../endpoint';
 
 class SessionTimeoutHandler extends AuthenticationHandler {
   private sessionStorage: SessionStorage;

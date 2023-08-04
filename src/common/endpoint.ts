@@ -1,19 +1,18 @@
-import http, { Server as HttpServer, ServerOptions } from 'http';
-import https from 'https';
+import http from 'http';
+import https from 'http';
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
 import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
-import merge from 'lodash.merge';
+import _ from 'lodash';
 
+import EndpointOptions, { defaultOptions } from './options';
 import defaultLogger from './util/logger';
 import { HandlerChain, HandlerFunction } from './util/handler';
 import * as Handlers from './handlers';
 import Session, { SessionStorage, Client } from './session';
-import LocalSessionStorage from './services/session-local';
-import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
-import OcppAction, { OcppActions } from '../types/ocpp/action';
+import OcppAction from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
 import { InboundCall, OutboundCall } from './call';
@@ -26,16 +25,27 @@ import {
   OutboundMessageHandler,
 } from './handler';
 
-type EndpointOptions = {
-  port?: number;
-  hostname?: string;
-  https?: boolean;
-  protocols?: Readonly<ProtocolVersion[]>;
-  actionsAllowed?: Readonly<OcppAction[]>;
-  maxConnections?: number;
-  sessionTimeout?: number;
-  httpServerOptions?: ServerOptions;
-};
+interface Endpoint extends TypedEmitter<EndpointEvents> {
+  get isListening(): boolean;
+  listen(): void;
+  stop(): void;
+  dropSession(clientId: string, force: boolean): void;
+  hasSession(clientId: string): boolean;
+
+  handle<TRequest extends InboundCall>(
+    action: OcppAction,
+    callback: (
+      data: CallPayload<TRequest>
+    ) => Promise<CallResponsePayload<TRequest>>
+  ): void;
+
+  send<TRequest extends OutboundCall>(
+    recipient: string,
+    action: OcppAction,
+    data: CallPayload<TRequest>,
+    id?: string
+  ): Promise<CallResponsePayload<TRequest>>;
+}
 
 type EndpointEvents = {
   server_starting: (config: EndpointOptions) => void;
@@ -50,12 +60,13 @@ type EndpointEvents = {
   message_received: (message: InboundMessage) => void;
 };
 
-abstract class OcppEndpoint<
-  TConfig extends EndpointOptions
-> extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
-  protected _options: TConfig;
+abstract class BaseEndpoint
+  extends (EventEmitter as new () => TypedEmitter<EndpointEvents>)
+  implements Endpoint
+{
+  readonly options: EndpointOptions;
 
-  protected httpServer: HttpServer;
+  protected httpServer: http.Server;
   protected sessionStorage: SessionStorage;
   protected logger: Logger;
 
@@ -63,30 +74,41 @@ abstract class OcppEndpoint<
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
   protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
-  protected abstract hasSession(clientId: string): boolean;
-  protected abstract dropSession(clientId: string, force: boolean): void;
+  abstract hasSession(clientId: string): boolean;
+  abstract dropSession(clientId: string, force: boolean): void;
   protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
-    options: TConfig,
-    authHandlers: AuthenticationHandler[],
+    options: EndpointOptions,
+    authHandlers: AuthenticationHandler[] = [],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
-    sessionStorage: SessionStorage = new LocalSessionStorage(),
-    logger: Logger = defaultLogger
+    httpServer = http.createServer(),
+    logger: Logger = defaultLogger,
+    sessionStorage: SessionStorage = new Map()
   ) {
     super();
     this.logger = logger;
 
-    this._options = merge(this.defaultOptions, options);
-    this.logger.debug('Loaded endpoint configuration');
-    this.logger.trace(this._options);
+    this.options = _.merge(defaultOptions, options);
 
-    this.httpServer = this.options.https
-      ? https.createServer(this.options.httpServerOptions)
-      : http.createServer(this.options.httpServerOptions);
+    if (!this.options.authRequired) {
+      this.logger.warn(
+        oneLine`options.authRequired is set to false,
+        authentication attempts will be accepted by default`
+      );
+    }
+    if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
+      this.logger.error(
+        oneLine`options.certificateAuth is set to
+        true but no https.Server instance was passed`
+      );
+    }
+    this.logger.debug('Loaded endpoint configuration');
+    this.logger.trace(this.options);
+
+    this.httpServer = httpServer;
     this.httpServer.on('error', this.onHttpError);
-    this.logger.debug('Created HTTP(S) server instance');
 
     this.sessionStorage = sessionStorage;
 
@@ -117,23 +139,6 @@ abstract class OcppEndpoint<
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());
-  }
-
-  protected get defaultOptions() {
-    return {
-      port:
-        process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
-      hostname: 'localhost',
-      protocols: ProtocolVersions,
-      actionsAllowed: OcppActions,
-      maxConnections: 511,
-      sessionTimeout: 30000,
-      httpServerOptions: {},
-    } as EndpointOptions;
-  }
-
-  public get options() {
-    return this._options;
   }
 
   public get isListening() {
@@ -207,7 +212,7 @@ abstract class OcppEndpoint<
     id: string = randomUUID()
   ): Promise<CallResponsePayload<TRequest>> {
     const message = new OutboundCall(new Client(recipient), id, action, data);
-    await this.sendMessage(message);
+    await this.onSend(message);
 
     return new Promise((resolve, reject) => {
       const callback = async (data: CallPayload<TRequest>) => {
@@ -220,10 +225,10 @@ abstract class OcppEndpoint<
     });
   }
 
-  protected async sendMessage(message: OutboundMessage) {
+  protected async onSend(message: OutboundMessage) {
     if (!this.isListening) {
       this.logger.warn(
-        oneLine`sendMessage() was called but endpoint is
+        oneLine`onSend() was called but endpoint is
         currently not listening for connections`
       );
       this.logger.trace(new Error().stack);
@@ -232,7 +237,7 @@ abstract class OcppEndpoint<
 
     if (!this.hasSession(message.recipient.id)) {
       this.logger.warn(
-        oneLine`sendMessage() was called but client with
+        oneLine`onSend() was called but client with
         id ${message.recipient.id} is not connected`
       );
       this.logger.trace(new Error().stack);
@@ -326,7 +331,7 @@ abstract class OcppEndpoint<
       await this.inboundHandlers.handle(message);
     } catch (err: any) {
       if (err instanceof OutboundCallError) {
-        await this.sendMessage(err);
+        await this.onSend(err);
       } else {
         this.logger.error(
           `Error occured while handling inbound
@@ -338,5 +343,5 @@ abstract class OcppEndpoint<
   }
 }
 
-export default OcppEndpoint;
-export { EndpointEvents, EndpointOptions };
+export default BaseEndpoint;
+export { Endpoint, EndpointEvents };
