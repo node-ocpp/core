@@ -26,6 +26,7 @@ import {
 } from './handler';
 
 interface Endpoint extends TypedEmitter<EndpointEvents> {
+  get isListening(): boolean;
   listen(): void;
   stop(): void;
   dropSession(clientId: string, force: boolean): void;
