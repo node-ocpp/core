@@ -287,7 +287,7 @@ class WsEndpoint extends OcppEndpoint {
           null
         );
 
-        await this.sendMessage(errorResponse);
+        await this.onSend(errorResponse);
         return;
       }
 
@@ -321,7 +321,7 @@ class WsEndpoint extends OcppEndpoint {
       }
 
       const responseHandler = async (response: OutboundMessage) => {
-        await this.sendMessage(response);
+        await this.onSend(response);
       };
 
       let message: InboundMessage;

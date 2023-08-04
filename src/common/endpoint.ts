@@ -187,7 +187,7 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     id: string = randomUUID()
   ): Promise<CallResponsePayload<TRequest>> {
     const message = new OutboundCall(new Client(recipient), id, action, data);
-    await this.sendMessage(message);
+    await this.onSend(message);
 
     return new Promise((resolve, reject) => {
       const callback = async (data: CallPayload<TRequest>) => {
@@ -200,10 +200,10 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     });
   }
 
-  protected async sendMessage(message: OutboundMessage) {
+  protected async onSend(message: OutboundMessage) {
     if (!this.isListening) {
       this.logger.warn(
-        oneLine`sendMessage() was called but endpoint is
+        oneLine`onSend() was called but endpoint is
         currently not listening for connections`
       );
       this.logger.trace(new Error().stack);
@@ -212,7 +212,7 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
 
     if (!this.hasSession(message.recipient.id)) {
       this.logger.warn(
-        oneLine`sendMessage() was called but client with
+        oneLine`onSend() was called but client with
         id ${message.recipient.id} is not connected`
       );
       this.logger.trace(new Error().stack);
@@ -306,7 +306,7 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
       await this.inboundHandlers.handle(message);
     } catch (err: any) {
       if (err instanceof OutboundCallError) {
-        await this.sendMessage(err);
+        await this.onSend(err);
       } else {
         this.logger.error(
           `Error occured while handling inbound
