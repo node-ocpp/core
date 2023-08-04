@@ -49,6 +49,7 @@ class WsEndpoint extends BaseEndpoint {
       logger,
       sessionStorage
     );
+
     this.wsServer = new ws.Server({ noServer: true });
     this.validator = validator;
 
