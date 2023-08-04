@@ -59,8 +59,8 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
     httpServer = http.createServer(),
-    sessionStorage: SessionStorage = new LocalSessionStorage(),
-    logger: Logger = defaultLogger
+    logger: Logger = defaultLogger,
+    sessionStorage: SessionStorage = new Map()
   ) {
     super();
     this.logger = logger;

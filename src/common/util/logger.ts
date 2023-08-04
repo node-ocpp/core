@@ -1,5 +1,4 @@
-import { Logger } from 'ts-log';
-import winston, { format, transports } from 'winston';
+import winston, { Logger, format, transports } from 'winston';
 import _ from 'lodash';
 
 import OcppMessage from '../message';
@@ -9,6 +8,7 @@ const config = {
   level:
     process.env.LOG_LEVEL?.toLowerCase() ??
     (process.env.NODE_ENV !== 'production' ? 'debug' : 'info'),
+
   levels: {
     error: 0,
     warn: 1,
@@ -16,6 +16,7 @@ const config = {
     debug: 3,
     trace: 4,
   },
+
   format: format.combine(
     format(log => {
       log.level = log.level.toUpperCase();
@@ -53,7 +54,11 @@ const config = {
 
 winston.addColors({ trace: 'grey' });
 
+type DefaultLogger = Logger & {
+  trace(message?: any, ...optionalParams: any[]): void;
+};
+
 const logObject = (object: object) => JSON.stringify(object, null, '  ');
 
-export default winston.createLogger(config) as unknown as Logger;
+export default winston.createLogger(config) as DefaultLogger;
 export { logObject };

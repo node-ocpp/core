@@ -60,10 +60,10 @@ class Client {
 }
 
 interface SessionStorage {
-  set(clientId: string, session: Session): Promise<void>;
-  get(clientId: string): Promise<Session | null>;
-  has(clientId: string): Promise<boolean>;
-  count(): Promise<number>;
+  set(clientId: string, session: Session): void;
+  get(clientId: string): Session | null;
+  has(clientId: string): boolean;
+  size: number;
 }
 
 export default Session;
