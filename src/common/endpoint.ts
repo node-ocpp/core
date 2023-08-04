@@ -1,4 +1,5 @@
-import http, { Server as HttpServer } from 'http';
+import http from 'http';
+import https from 'http';
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import TypedEmitter from 'typed-emitter';
@@ -6,11 +7,11 @@ import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 import _ from 'lodash';
 
+import EndpointOptions, { defaultOptions } from './options';
 import defaultLogger from './util/logger';
 import { HandlerChain, HandlerFunction } from './util/handler';
 import * as Handlers from './handlers';
 import Session, { SessionStorage, Client } from './session';
-import LocalSessionStorage from './services/session-local';
 import OcppAction from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
@@ -23,7 +24,6 @@ import {
   InboundMessageHandler,
   OutboundMessageHandler,
 } from './handler';
-import EndpointOptions, { defaultOptions } from './options';
 
 type EndpointEvents = {
   server_starting: (config: EndpointOptions) => void;
@@ -41,7 +41,7 @@ type EndpointEvents = {
 abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
   readonly options: EndpointOptions;
 
-  protected httpServer: HttpServer;
+  protected httpServer: http.Server;
   protected sessionStorage: SessionStorage;
   protected logger: Logger;
 
@@ -55,9 +55,10 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
 
   constructor(
     options: EndpointOptions,
-    authHandlers: AuthenticationHandler[],
+    authHandlers: AuthenticationHandler[] = [],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
+    httpServer = http.createServer(),
     sessionStorage: SessionStorage = new LocalSessionStorage(),
     logger: Logger = defaultLogger
   ) {
@@ -65,12 +66,18 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
     this.logger = logger;
 
     this.options = _.merge(defaultOptions, options);
+
+    if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
+      this.logger.error(
+        oneLine`options.certificateAuth is set to
+        true but no https.Server instance was passed`
+      );
+    }
     this.logger.debug('Loaded endpoint configuration');
     this.logger.trace(this.options);
 
-    this.httpServer = http.createServer();
+    this.httpServer = httpServer;
     this.httpServer.on('error', this.onHttpError);
-    this.logger.debug('Created HTTP(S) server instance');
 
     this.sessionStorage = sessionStorage;
 

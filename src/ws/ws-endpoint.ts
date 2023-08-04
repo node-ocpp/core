@@ -1,5 +1,6 @@
-import { IncomingMessage as HttpRequest, STATUS_CODES } from 'http';
-import { WebSocket, Server as WsServer } from 'ws';
+import http from 'http';
+import { WebSocket } from 'ws';
+import * as ws from 'ws';
 import path from 'path';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
@@ -24,20 +25,18 @@ import {
 } from '../common/handler';
 import WsValidator from './ws-validator';
 
-type WsOptions = EndpointOptions & {};
-
 class WsEndpoint extends OcppEndpoint {
-  protected wsServer: WsServer;
+  protected wsServer: ws.Server;
   protected validator: WsValidator;
-  protected _sendHandler: OutboundMessageHandler;
 
   constructor(
-    options: WsOptions,
-    authHandlers: AuthenticationHandler[],
+    options?: EndpointOptions,
+    authHandlers?: AuthenticationHandler[],
     inboundHandlers?: InboundMessageHandler[],
     outboundHandlers?: OutboundMessageHandler[],
-    sessionStorage?: SessionStorage,
+    httpServer?: http.Server,
     logger?: Logger,
+    sessionStorage?: SessionStorage,
     validator: WsValidator = new WsValidator()
   ) {
     super(
@@ -45,10 +44,11 @@ class WsEndpoint extends OcppEndpoint {
       authHandlers,
       inboundHandlers,
       outboundHandlers,
-      sessionStorage,
-      logger
+      httpServer,
+      logger,
+      sessionStorage
     );
-    this.wsServer = new WsServer({ noServer: true });
+    this.wsServer = new ws.Server({ noServer: true });
     this.validator = validator;
 
     this.httpServer.on('upgrade', this.onHttpUpgrade);
@@ -129,7 +129,7 @@ class WsEndpoint extends OcppEndpoint {
   }
 
   protected onHttpUpgrade = (
-    request: HttpRequest,
+    request: http.IncomingMessage,
     socket: Duplex,
     head: Buffer
   ) => {
@@ -181,12 +181,12 @@ class WsEndpoint extends OcppEndpoint {
     const onReject = (status: number) => {
       this.logger.debug(
         oneLine`Rejecting upgrade request with
-        status: ${status} ${STATUS_CODES[status]}`
+        status: ${status} ${http.STATUS_CODES[status]}`
       );
 
       this.onAuthenticationFailure(authRequest);
 
-      socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\n\r\n`);
+      socket.write(`HTTP/1.1 ${status} ${http.STATUS_CODES[status]}\r\n\r\n`);
       socket.destroy();
     };
 
@@ -199,7 +199,7 @@ class WsEndpoint extends OcppEndpoint {
     this.onAuthenticationAttempt(authRequest);
   };
 
-  protected parseUpgradeRequest(request: HttpRequest) {
+  protected parseUpgradeRequest(request: http.IncomingMessage) {
     const requestPath = path.parse(request.url);
     const clientId = requestPath.base;
 
@@ -256,7 +256,7 @@ class WsEndpoint extends OcppEndpoint {
 
   protected onWsConnected = (
     ws: WebSocket,
-    request: HttpRequest,
+    request: http.IncomingMessage,
     client: Client
   ) => {
     ws.on('message', async (data, isBinary) => {
@@ -427,4 +427,3 @@ class WsEndpoint extends OcppEndpoint {
 }
 
 export default WsEndpoint;
-export { WsOptions };
