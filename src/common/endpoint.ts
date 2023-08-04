@@ -25,6 +25,27 @@ import {
   OutboundMessageHandler,
 } from './handler';
 
+interface Endpoint extends TypedEmitter<EndpointEvents> {
+  listen(): void;
+  stop(): void;
+  dropSession(clientId: string, force: boolean): void;
+  hasSession(clientId: string): boolean;
+
+  handle<TRequest extends InboundCall>(
+    action: OcppAction,
+    callback: (
+      data: CallPayload<TRequest>
+    ) => Promise<CallResponsePayload<TRequest>>
+  ): void;
+
+  send<TRequest extends OutboundCall>(
+    recipient: string,
+    action: OcppAction,
+    data: CallPayload<TRequest>,
+    id?: string
+  ): Promise<CallResponsePayload<TRequest>>;
+}
+
 type EndpointEvents = {
   server_starting: (config: EndpointOptions) => void;
   server_listening: (config: EndpointOptions) => void;
@@ -38,7 +59,10 @@ type EndpointEvents = {
   message_received: (message: InboundMessage) => void;
 };
 
-abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<EndpointEvents>) {
+abstract class BaseEndpoint
+  extends (EventEmitter as new () => TypedEmitter<EndpointEvents>)
+  implements Endpoint
+{
   readonly options: EndpointOptions;
 
   protected httpServer: http.Server;
@@ -49,8 +73,8 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
   protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
-  protected abstract hasSession(clientId: string): boolean;
-  protected abstract dropSession(clientId: string, force: boolean): void;
+  abstract hasSession(clientId: string): boolean;
+  abstract dropSession(clientId: string, force: boolean): void;
   protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
@@ -318,5 +342,5 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
   }
 }
 
-export default OcppEndpoint;
-export { EndpointEvents, EndpointOptions };
+export default BaseEndpoint;
+export { Endpoint, EndpointEvents };

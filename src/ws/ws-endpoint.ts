@@ -8,7 +8,8 @@ import basicAuth from 'basic-auth';
 import { Logger } from 'ts-log';
 import { oneLine, oneLineInlineLists } from 'common-tags';
 
-import OcppEndpoint, { EndpointOptions } from '../common/endpoint';
+import BaseEndpoint from '../common/endpoint';
+import EndpointOptions from '../common/options';
 import { Client, SessionStorage } from '../common/session';
 import { InboundMessage, OutboundMessage, Payload } from '../common/message';
 import { InboundCall, OutboundCall } from '../common/call';
@@ -25,7 +26,7 @@ import {
 } from '../common/handler';
 import WsValidator from './ws-validator';
 
-class WsEndpoint extends OcppEndpoint {
+class WsEndpoint extends BaseEndpoint {
   protected wsServer: ws.Server;
   protected validator: WsValidator;
 
