@@ -1,8 +1,7 @@
 import http from 'http';
 import https from 'http';
 import { randomUUID } from 'crypto';
-import { EventEmitter } from 'events';
-import TypedEmitter from 'typed-emitter';
+import EventEmitter from 'eventemitter3';
 import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 import _ from 'lodash';
@@ -25,7 +24,7 @@ import {
   OutboundMessageHandler,
 } from './handler';
 
-interface Endpoint extends TypedEmitter<EndpointEvents> {
+interface Endpoint extends EventEmitter<EndpointEvents> {
   get isListening(): boolean;
   listen(): void;
   stop(): void;
@@ -48,8 +47,8 @@ interface Endpoint extends TypedEmitter<EndpointEvents> {
 }
 
 type EndpointEvents = {
-  server_starting: (config: EndpointOptions) => void;
-  server_listening: (config: EndpointOptions) => void;
+  server_starting: (options: EndpointOptions) => void;
+  server_listening: (options: EndpointOptions) => void;
   server_stopping: () => void;
   server_stopped: () => void;
   client_connecting: (client: Client) => void;
@@ -61,7 +60,7 @@ type EndpointEvents = {
 };
 
 abstract class BaseEndpoint
-  extends (EventEmitter as new () => TypedEmitter<EndpointEvents>)
+  extends EventEmitter<EndpointEvents>
   implements Endpoint
 {
   readonly options: EndpointOptions;
