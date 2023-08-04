@@ -1,7 +1,7 @@
 import { Logger } from 'ts-log';
 import { oneLine } from 'common-tags';
 
-import { EndpointOptions } from '../endpoint';
+import EndpointOptions from '../options';
 import MessageType from '../../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from '../message';
 import { InboundCall, OutboundCall } from '../call';
