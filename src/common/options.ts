@@ -1,20 +1,21 @@
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 
-type EndpointOptions = {
-  port?: number;
-  hostname?: string;
-  route?: string;
-  protocols?: Readonly<ProtocolVersion[]>;
-  actionsAllowed?: Readonly<OcppAction[]>;
-  maxConnections?: number;
-  sessionTimeout?: number;
-  basicAuth?: boolean;
-  certificateAuth?: boolean;
-  validation?: boolean;
-};
+type EndpointOptions = Partial<{
+  port: number;
+  hostname: string;
+  route: string;
+  protocols: Readonly<ProtocolVersion[]>;
+  actionsAllowed: Readonly<OcppAction[]>;
+  maxConnections: number;
+  sessionTimeout: number;
+  authRequired: boolean;
+  basicAuth: boolean;
+  certificateAuth: boolean;
+  validation: boolean;
+}>;
 
-const defaultOptions = {
+const defaultOptions: EndpointOptions = {
   port: process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
   hostname: 'localhost',
   route: 'ocpp',
@@ -22,8 +23,9 @@ const defaultOptions = {
   actionsAllowed: OcppActions,
   maxConnections: 511,
   sessionTimeout: 30000,
+  authRequired: true,
   basicAuth: true,
-  certificateAuth: true,
+  certificateAuth: false,
   validation: true,
 };
 

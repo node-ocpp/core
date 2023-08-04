@@ -67,6 +67,12 @@ abstract class OcppEndpoint extends (EventEmitter as new () => TypedEmitter<Endp
 
     this.options = _.merge(defaultOptions, options);
 
+    if (!this.options.authRequired) {
+      this.logger.warn(
+        oneLine`options.authRequired is set to false,
+        authentication attempts will be accepted by default`
+      );
+    }
     if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
       this.logger.error(
         oneLine`options.certificateAuth is set to
