@@ -111,6 +111,7 @@ abstract class BaseEndpoint
       new Handlers.SessionExistsHandler(),
       new Handlers.SessionTimeoutHandler(),
       ...authHandlers,
+      new Handlers.DefaultAuthHandler()
     );
     this.logger.debug(`Loaded ${this.authHandlers.size} auth handlers`);
     this.logger.trace(this.authHandlers.toString());
