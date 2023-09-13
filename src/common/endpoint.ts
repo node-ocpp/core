@@ -285,13 +285,7 @@ abstract class BaseEndpoint
       return;
     }
 
-    const session = new Session(
-      request.client,
-      request.protocol,
-      () => this.hasSession(request.client.id),
-      (force = false) => this.dropSession(request.client.id, force)
-    );
-    await this.sessionStorage.set(request.client.id, session);
+    const session = new Session(request.client, request.protocol);
 
     process.nextTick(() => {
       this.logger.info(
