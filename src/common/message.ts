@@ -1,6 +1,7 @@
 import { Client } from './session';
 import MessageType from '../types/ocpp/type';
 import { InboundMessageHandler, ResponseHandler } from './handler';
+import { RequestContext } from './util/handler';
 
 type MessageValue =
   | string
@@ -12,6 +13,7 @@ type MessageValue =
 
 type Payload = any; // MessageValue | null | {};
 abstract class OcppMessage {
+  context: RequestContext;
   readonly type!: MessageType;
   readonly id: string;
   protected _timestamp?: Date;
