@@ -55,11 +55,11 @@ class WsEndpoint extends BaseEndpoint {
     this.wsServer.on('connection', this.onWsConnected);
   }
 
-  public hasSession(clientId: string) {
-    return this.getSocket(clientId)?.readyState === WebSocket.OPEN;
+  public isConnected(clientId: string) {
+    return this.sockets.get(clientId)?.readyState === ws.WebSocket.OPEN;
   }
 
-  public async dropSession(
+  public async drop(
     clientId: string,
     force = false,
     code = 1000,
@@ -265,7 +265,7 @@ class WsEndpoint extends BaseEndpoint {
           `Received message with binary data from client with
           id ${client.id} which is currently not supported`
         );
-        this.dropSession(client.id);
+        this.drop(client.id);
         return;
       }
 

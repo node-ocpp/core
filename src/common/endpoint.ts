@@ -24,8 +24,8 @@ interface Endpoint extends EventEmitter<EndpointEvents> {
   get isListening(): boolean;
   listen(): void;
   stop(): void;
-  dropSession(clientId: string, force: boolean): void;
-  hasSession(clientId: string): boolean;
+  drop(clientId: string, force: boolean): void;
+  isConnected(clientId: string): boolean;
 
   handle<TRequest extends InboundCall>(
     action: OcppAction,
@@ -69,8 +69,8 @@ abstract class BaseEndpoint
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
   protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
-  abstract hasSession(clientId: string): boolean;
-  abstract dropSession(clientId: string, force: boolean): void;
+  abstract isConnected(clientId: string): boolean;
+  abstract drop(clientId: string, force: boolean): void;
   protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
@@ -230,7 +230,7 @@ abstract class BaseEndpoint
       return;
     }
 
-    if (!this.hasSession(message.recipient.id)) {
+    if (!this.isConnected(message.recipient.id)) {
       this.logger.warn(
         oneLine`onSend() was called but client with
         id ${message.recipient.id} is not connected`
@@ -276,7 +276,7 @@ abstract class BaseEndpoint
   }
 
   protected async onAuthenticationSuccess(request: AuthenticationRequest) {
-    if (await this.hasSession(request.client.id)) {
+    if (this.isConnected(request.client.id)) {
       this.logger.warn(
         oneLine`onAuthenticationSuccess() was called but client
         with id ${request.client.id} is already connected`
