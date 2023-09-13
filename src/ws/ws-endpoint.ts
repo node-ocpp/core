@@ -4,7 +4,6 @@ import * as ws from 'ws';
 import path from 'path';
 import { Duplex } from 'stream';
 import { randomBytes } from 'crypto';
-import basicAuth from 'basic-auth';
 import { Logger } from 'ts-log';
 import { oneLine, oneLineInlineLists } from 'common-tags';
 
@@ -18,10 +17,9 @@ import { InboundCallError, OutboundCallError } from '../common/callerror';
 import ProtocolVersion from '../types/ocpp/version';
 import MessageType from '../types/ocpp/type';
 import OcppAction from '../types/ocpp/action';
+import AuthHandler, { AuthRequest } from '../common/auth';
 import {
   InboundMessageHandler,
-  AuthenticationHandler,
-  AuthenticationRequest,
   OutboundMessageHandler,
 } from '../common/handler';
 import WsValidator from './ws-validator';
@@ -32,7 +30,7 @@ class WsEndpoint extends BaseEndpoint {
 
   constructor(
     options?: EndpointOptions,
-    authHandlers?: AuthenticationHandler[],
+    authHandlers?: AuthHandler[],
     inboundHandlers?: InboundMessageHandler[],
     outboundHandlers?: OutboundMessageHandler[],
     httpServer?: http.Server,

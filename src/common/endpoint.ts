@@ -8,7 +8,7 @@ import _ from 'lodash';
 
 import EndpointOptions, { defaultOptions } from './options';
 import defaultLogger from './util/logger';
-import { HandlerChain, HandlerFunction } from './util/handler';
+import { HandlerChain, HandlerFunction, RequestContext } from './util/handler';
 import * as Handlers from './handlers';
 import Session, { SessionStorage, Client } from './session';
 import OcppAction from '../types/ocpp/action';
@@ -17,12 +17,8 @@ import { InboundMessage, OutboundMessage } from './message';
 import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
-import {
-  AuthenticationHandler,
-  AuthenticationRequest,
-  InboundMessageHandler,
-  OutboundMessageHandler,
-} from './handler';
+import AuthHandler, { AcceptanceState, AuthRequest } from './auth';
+import { InboundMessageHandler, OutboundMessageHandler } from './handler';
 
 interface Endpoint extends EventEmitter<EndpointEvents> {
   get isListening(): boolean;
@@ -69,7 +65,7 @@ abstract class BaseEndpoint
   protected sessionStorage: SessionStorage;
   protected logger: Logger;
 
-  protected authHandlers: HandlerChain<AuthenticationHandler>;
+  protected authHandlers: HandlerChain<AuthHandler>;
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
   protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
@@ -79,7 +75,7 @@ abstract class BaseEndpoint
 
   constructor(
     options: EndpointOptions,
-    authHandlers: AuthenticationHandler[] = [],
+    authHandlers: AuthHandler[] = [],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
     httpServer = http.createServer(),
@@ -112,9 +108,9 @@ abstract class BaseEndpoint
     this.sessionStorage = sessionStorage;
 
     this.authHandlers = new HandlerChain(
-      new Handlers.SessionExistsHandler(sessionStorage, logger),
-      new Handlers.SessionTimeoutHandler(sessionStorage, logger, this.options),
-      ...authHandlers
+      new Handlers.SessionExistsHandler(),
+      new Handlers.SessionTimeoutHandler(),
+      ...authHandlers,
     );
     this.logger.debug(`Loaded ${this.authHandlers.size} auth handlers`);
     this.logger.trace(this.authHandlers.toString());
