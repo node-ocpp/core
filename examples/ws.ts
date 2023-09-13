@@ -6,7 +6,7 @@ import { BootNotificationRequest } from '../src/types/ocpp/1.6/messages/BootNoti
 
 const wsEndpoint = new WsEndpoint(
   { basicAuth: false, sessionTimeout: 120000 },
-  [new Handlers.BasicAuthHandler()],
+  [],
   [
     new Handlers.StatusNotificationHandler(),
     new Handlers.HeartbeatHandler(),
