@@ -1,8 +1,8 @@
 import { Logger } from 'ts-log';
 
+import Session from '../session';
 import { Endpoint } from '../endpoint';
 import { logObject } from './logger';
-import { SessionStorage } from '../session';
 
 interface Handler<TRequest extends Request> {
   handle: HandlerFunction<TRequest>;
@@ -23,7 +23,7 @@ interface Request {
 type RequestContext = {
   endpoint: Endpoint;
   logger: Logger;
-  sessions: SessionStorage;
+  sessions: Map<string, Session>;
 };
 
 abstract class BaseHandler<TRequest extends Request>

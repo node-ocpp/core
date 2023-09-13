@@ -25,13 +25,5 @@ class Client {
   }
 }
 
-interface SessionStorage {
-  set(clientId: string, session: Session): void;
-  get(clientId: string): Session | null;
-  has(clientId: string): boolean;
-  delete(clientId: string): boolean;
-  size: number;
-}
-
 export default Session;
-export { Client, SessionStorage };
+export { Client };

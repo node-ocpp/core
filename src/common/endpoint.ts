@@ -10,7 +10,7 @@ import EndpointOptions, { defaultOptions } from './options';
 import defaultLogger from './util/logger';
 import { HandlerChain, HandlerFunction, RequestContext } from './util/handler';
 import * as Handlers from './handlers';
-import Session, { SessionStorage, Client } from './session';
+import Session, { Client } from './session';
 import OcppAction from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
@@ -65,7 +65,7 @@ abstract class BaseEndpoint
   readonly options: EndpointOptions;
 
   protected httpServer: http.Server;
-  protected sessions: SessionStorage;
+  protected sessions: Map<string, Session>;
   protected logger: Logger;
 
   protected authHandlers: HandlerChain<AuthHandler>;
@@ -82,13 +82,12 @@ abstract class BaseEndpoint
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
     httpServer = http.createServer(),
-    logger: Logger = defaultLogger,
-    sessions: SessionStorage = new Map()
+    logger: Logger = defaultLogger
   ) {
     super();
-    this.logger = logger;
-
     this.options = _.merge(defaultOptions, options);
+    this.sessions = new Map();
+    this.logger = logger;
 
     if (!this.options.authRequired) {
       this.logger.warn(
@@ -108,8 +107,6 @@ abstract class BaseEndpoint
     this.httpServer = httpServer;
     this.httpServer.on('error', this.onHttpError);
 
-    this.sessions = sessions;
-
     this.authHandlers = new HandlerChain(
       new Handlers.SessionExistsHandler(),
       new Handlers.SessionTimeoutHandler(),
@@ -120,8 +117,8 @@ abstract class BaseEndpoint
     this.logger.trace(this.authHandlers.toString());
 
     this.inboundHandlers = new HandlerChain(
-      new Handlers.InboundMessageSynchronicityHandler(sessions, logger),
-      new Handlers.InboundPendingMessageHandler(sessions),
+      new Handlers.InboundMessageSynchronicityHandler(this.sessions, logger),
+      new Handlers.InboundPendingMessageHandler(this.sessions),
       new Handlers.InboundActionsAllowedHandler(this.options, logger),
       ...inboundHandlers,
       new Handlers.DefaultMessageHandler(logger)
@@ -130,11 +127,11 @@ abstract class BaseEndpoint
     this.logger.trace(this.inboundHandlers.toString());
 
     this.outboundHandlers = new HandlerChain(
-      new Handlers.OutboundMessageSynchronicityHandler(sessions, logger),
+      new Handlers.OutboundMessageSynchronicityHandler(this.sessions, logger),
       new Handlers.OutboundActionsAllowedHandler(this.options, logger),
       ...outboundHandlers,
       async (message: OutboundMessage) => await this.handleSend(message),
-      new Handlers.OutboundPendingMessageHandler(sessions)
+      new Handlers.OutboundPendingMessageHandler(this.sessions)
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());

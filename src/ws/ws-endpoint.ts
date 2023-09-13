@@ -8,7 +8,7 @@ import { oneLine, oneLineInlineLists } from 'common-tags';
 
 import BaseEndpoint from '../common/endpoint';
 import EndpointOptions from '../common/options';
-import { Client, SessionStorage } from '../common/session';
+import { Client } from '../common/session';
 import { InboundMessage, OutboundMessage, Payload } from '../common/message';
 import { InboundCall, OutboundCall } from '../common/call';
 import { InboundCallResult, OutboundCallResult } from '../common/callresult';
@@ -35,7 +35,6 @@ class WsEndpoint extends BaseEndpoint {
     outboundHandlers?: OutboundMessageHandler[],
     httpServer?: http.Server,
     logger?: Logger,
-    sessions?: SessionStorage,
     validator: WsValidator = new WsValidator()
   ) {
     super(
@@ -44,8 +43,7 @@ class WsEndpoint extends BaseEndpoint {
       inboundHandlers,
       outboundHandlers,
       httpServer,
-      logger,
-      sessions
+      logger
     );
 
     this.sockets = new Map();
@@ -83,7 +81,7 @@ class WsEndpoint extends BaseEndpoint {
 
   protected handleSend = async (message: OutboundMessage) => {
     const ws = this.sockets.get(message.recipient.id);
-    const session = await this.sessions.get(message.recipient.id);
+    const session = this.sessions.get(message.recipient.id);
 
     const messageArr: any[] = [message.type, message.id];
     if (message instanceof OutboundCall) {
@@ -98,8 +96,7 @@ class WsEndpoint extends BaseEndpoint {
       this.options.validation &&
       (message instanceof OutboundCall || message instanceof OutboundCallResult)
     ) {
-      const dateToString = (key: string, value: string) => value;
-      const rawData = JSON.parse(JSON.stringify(message.data), dateToString);
+      const rawData = JSON.parse(JSON.stringify(message.data), (k, v) => v);
 
       const messageValidation = await this.validator.validate(
         message.type,

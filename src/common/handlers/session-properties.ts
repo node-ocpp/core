@@ -1,4 +1,4 @@
-import { SessionStorage } from '../session';
+import Session from '../session';
 import { InboundMessage, OutboundMessage } from '../message';
 import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
 import { InboundCall, OutboundCall } from '../call';
@@ -6,7 +6,7 @@ import { InboundCall, OutboundCall } from '../call';
 class InboundPendingMessageHandler extends InboundMessageHandler {
   private sessions;
 
-  constructor(sessions: SessionStorage) {
+  constructor(sessions: Map<string, Session>) {
     super();
     this.sessions = sessions;
   }
@@ -36,7 +36,7 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
 class OutboundPendingMessageHandler extends OutboundMessageHandler {
   private sessions;
 
-  constructor(sessions: SessionStorage) {
+  constructor(sessions: Map<string, Session>) {
     super();
     this.sessions = sessions;
   }
