@@ -22,6 +22,7 @@ import { InboundMessageHandler, OutboundMessageHandler } from './handler';
 
 interface Endpoint extends EventEmitter<EndpointEvents> {
   options: EndpointOptions;
+  sessions: Map<string, Session>;
   isListening: boolean;
 
   listen(): void;
@@ -63,9 +64,9 @@ abstract class BaseEndpoint
   implements Endpoint
 {
   readonly options: EndpointOptions;
+  readonly sessions: Map<string, Session>;
 
   protected httpServer: http.Server;
-  protected sessions: Map<string, Session>;
   protected logger: Logger;
 
   protected authHandlers: HandlerChain<AuthHandler>;
@@ -357,7 +358,6 @@ abstract class BaseEndpoint
     return {
       endpoint: this,
       logger: this.logger,
-      sessions: this.sessions,
     };
   }
 }

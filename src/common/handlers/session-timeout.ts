@@ -11,7 +11,7 @@ class SessionTimeoutHandler extends AuthHandler {
         return;
       }
 
-      const session = request.context.sessions.get(request.client.id);
+      const session = request.context.endpoint.sessions.get(request.client.id);
       const difference =
         new Date().getTime() - session.lastInboundMessage?.timestamp.getTime();
 
