@@ -35,7 +35,7 @@ class WsEndpoint extends BaseEndpoint {
     outboundHandlers?: OutboundMessageHandler[],
     httpServer?: http.Server,
     logger?: Logger,
-    sessionStorage?: SessionStorage,
+    sessions?: SessionStorage,
     validator: WsValidator = new WsValidator()
   ) {
     super(
@@ -45,7 +45,7 @@ class WsEndpoint extends BaseEndpoint {
       outboundHandlers,
       httpServer,
       logger,
-      sessionStorage
+      sessions
     );
 
     this.sockets = new Map();
@@ -83,7 +83,7 @@ class WsEndpoint extends BaseEndpoint {
 
   protected handleSend = async (message: OutboundMessage) => {
     const ws = this.sockets.get(message.recipient.id);
-    const session = await this.sessionStorage.get(message.recipient.id);
+    const session = await this.sessions.get(message.recipient.id);
 
     const messageArr: any[] = [message.type, message.id];
     if (message instanceof OutboundCall) {
@@ -237,7 +237,7 @@ class WsEndpoint extends BaseEndpoint {
         this.options.validation &&
         (type === MessageType.CALL || type === MessageType.CALLRESULT)
       ) {
-        const session = this.sessionStorage.get(client.id);
+        const session = this.sessions.get(client.id);
         const lastOutboundCall = session?.lastOutboundMessage as OutboundCall;
 
         const messageValidation = await this.validator.validate(

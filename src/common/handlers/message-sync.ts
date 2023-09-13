@@ -9,17 +9,17 @@ import { InboundCall, OutboundCall } from '../call';
 import { OutboundCallError } from '../callerror';
 
 class InboundMessageSynchronicityHandler extends InboundMessageHandler {
-  private sessionStorage;
+  private sessions;
   private logger;
 
-  constructor(sessionStorage: SessionStorage, logger: Logger) {
+  constructor(sessions: SessionStorage, logger: Logger) {
     super();
-    this.sessionStorage = sessionStorage;
+    this.sessions = sessions;
     this.logger = logger;
   }
 
   async handle(message: InboundMessage) {
-    const session = await this.sessionStorage.get(message.sender.id);
+    const session = this.sessions.get(message.sender.id);
     let error = false;
 
     /*
@@ -79,17 +79,17 @@ class InboundMessageSynchronicityHandler extends InboundMessageHandler {
 }
 
 class OutboundMessageSynchronicityHandler extends OutboundMessageHandler {
-  private sessionStorage;
+  private sessions;
   private logger;
 
-  constructor(sessionStorage: SessionStorage, logger: Logger) {
+  constructor(sessions: SessionStorage, logger: Logger) {
     super();
-    this.sessionStorage = sessionStorage;
+    this.sessions = sessions;
     this.logger = logger;
   }
 
   async handle(message: OutboundMessage) {
-    const session = await this.sessionStorage.get(message.recipient.id);
+    const session = this.sessions.get(message.recipient.id);
 
     /*
     If the client has sent an inbound CALL message, the endpoint must respond

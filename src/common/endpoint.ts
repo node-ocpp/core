@@ -65,7 +65,7 @@ abstract class BaseEndpoint
   readonly options: EndpointOptions;
 
   protected httpServer: http.Server;
-  protected sessionStorage: SessionStorage;
+  protected sessions: SessionStorage;
   protected logger: Logger;
 
   protected authHandlers: HandlerChain<AuthHandler>;
@@ -83,7 +83,7 @@ abstract class BaseEndpoint
     outboundHandlers: OutboundMessageHandler[] = [],
     httpServer = http.createServer(),
     logger: Logger = defaultLogger,
-    sessionStorage: SessionStorage = new Map()
+    sessions: SessionStorage = new Map()
   ) {
     super();
     this.logger = logger;
@@ -108,7 +108,7 @@ abstract class BaseEndpoint
     this.httpServer = httpServer;
     this.httpServer.on('error', this.onHttpError);
 
-    this.sessionStorage = sessionStorage;
+    this.sessions = sessions;
 
     this.authHandlers = new HandlerChain(
       new Handlers.SessionExistsHandler(),
@@ -120,8 +120,8 @@ abstract class BaseEndpoint
     this.logger.trace(this.authHandlers.toString());
 
     this.inboundHandlers = new HandlerChain(
-      new Handlers.InboundMessageSynchronicityHandler(sessionStorage, logger),
-      new Handlers.InboundPendingMessageHandler(sessionStorage),
+      new Handlers.InboundMessageSynchronicityHandler(sessions, logger),
+      new Handlers.InboundPendingMessageHandler(sessions),
       new Handlers.InboundActionsAllowedHandler(this.options, logger),
       ...inboundHandlers,
       new Handlers.DefaultMessageHandler(logger)
@@ -130,11 +130,11 @@ abstract class BaseEndpoint
     this.logger.trace(this.inboundHandlers.toString());
 
     this.outboundHandlers = new HandlerChain(
-      new Handlers.OutboundMessageSynchronicityHandler(sessionStorage, logger),
+      new Handlers.OutboundMessageSynchronicityHandler(sessions, logger),
       new Handlers.OutboundActionsAllowedHandler(this.options, logger),
       ...outboundHandlers,
       async (message: OutboundMessage) => await this.handleSend(message),
-      new Handlers.OutboundPendingMessageHandler(sessionStorage)
+      new Handlers.OutboundPendingMessageHandler(sessions)
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());
@@ -310,7 +310,7 @@ abstract class BaseEndpoint
     }
 
     const session = new Session(request.client, request.protocol);
-    this.sessionStorage.set(request.client.id, session);
+    this.sessions.set(request.client.id, session);
 
     this.emit('client_accepted', request);
     this.logger.info(
@@ -320,7 +320,7 @@ abstract class BaseEndpoint
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!this.sessionStorage.delete(clientId)) {
+    if (!this.sessions.delete(clientId)) {
       this.logger.error(
         oneLine`onSessionClosed() was called but session for client
         with id ${clientId} does not exist`
@@ -330,7 +330,7 @@ abstract class BaseEndpoint
     }
 
     this.logger.info(`Client with id ${clientId} disconnected`);
-    this.emit('client_disconnected', this.sessionStorage.get(clientId));
+    this.emit('client_disconnected', this.sessions.get(clientId));
   }
 
   protected async onInboundMessage(message: InboundMessage) {
@@ -360,7 +360,7 @@ abstract class BaseEndpoint
     return {
       endpoint: this,
       logger: this.logger,
-      sessions: this.sessionStorage,
+      sessions: this.sessions,
     };
   }
 }
