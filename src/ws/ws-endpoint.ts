@@ -1,5 +1,4 @@
 import http from 'http';
-import { WebSocket } from 'ws';
 import * as ws from 'ws';
 import path from 'path';
 import { Duplex } from 'stream';
@@ -55,6 +54,7 @@ class WsEndpoint extends BaseEndpoint {
 
     this.httpServer.on('upgrade', this.onHttpUpgrade);
     this.wsServer.on('connection', this.onWsConnected);
+    this.wsServer.shouldHandle = req => req.url.startsWith(this.options.route);
   }
 
   public isConnected(clientId: string) {
@@ -125,134 +125,70 @@ class WsEndpoint extends BaseEndpoint {
   };
 
   protected onHttpUpgrade = (
-    request: http.IncomingMessage,
+    req: http.IncomingMessage,
     socket: Duplex,
     head: Buffer
   ) => {
-    let error;
-    let requestProperties;
-
-    try {
-      requestProperties = this.parseUpgradeRequest(request);
-    } catch (err) {
-      error = err as any as Error;
-    }
-
-    const { id, password, protocols } = requestProperties;
-
-    const authRequest = new (class extends AuthenticationRequest {
-      client = new Client(id);
-      protocols = protocols;
-      password = password ?? undefined;
-
-      accept(protocol = this.protocols[0]) {
-        super.accept(protocol);
-        onAccept(protocol);
-      }
-
-      reject(status = 401) {
-        super.reject();
-        onReject(status);
-      }
-    })();
-
-    const onAccept = async (protocol: ProtocolVersion) => {
-      this.logger.debug(
-        `Upgrading WebSocket connection with subprotocol: ${protocol}`
-      );
-
-      await this.onAuthenticationSuccess(authRequest);
-
-      this.wsServer.handleUpgrade(request, socket, head, ws => {
-        (ws as any)._url = request.url;
-
-        ws.on('close', (code, reason) =>
-          this.onWsDisconnected(ws, code, reason)
-        );
-
-        this.wsServer.emit('connection', ws, request, authRequest.client);
-      });
-    };
-
-    const onReject = (status: number) => {
-      this.logger.debug(
-        oneLine`Rejecting upgrade request with
-        status: ${status} ${http.STATUS_CODES[status]}`
-      );
-
-      this.onAuthenticationFailure(authRequest);
-
-      socket.write(`HTTP/1.1 ${status} ${http.STATUS_CODES[status]}\r\n\r\n`);
-      socket.destroy();
-    };
-
-    if (error) {
-      this.logger.warn('Error while parsing HTTP(S) upgrade request');
-      this.logger.trace(error.stack);
-      authRequest.reject(400);
-    }
-
-    this.onAuthenticationAttempt(authRequest);
-  };
-
-  protected parseUpgradeRequest(request: http.IncomingMessage) {
-    const requestPath = path.parse(request.url);
-    const clientId = requestPath.base;
-
-    const basicCredentials = this.options.basicAuth
-      ? basicAuth(request)
-      : undefined;
-
-    const clientProtocols =
-      request.headers['sec-websocket-protocol']?.split(',');
-
+    const clientId = path.basename(req.url);
+    const clientProtocols = req.headers['sec-websocket-protocol']?.split(',');
     const supportedProtocols = this.options.protocols.filter(protocol =>
       clientProtocols?.includes(protocol)
     ) as ProtocolVersion[];
+    const authRequest = new AuthRequest(
+      this.context,
+      clientId,
+      supportedProtocols[0],
+      req
+    );
 
-    const trimSlashesRegex = /^\/+|\/+$/g;
-    if (
-      requestPath.dir.replaceAll(trimSlashesRegex, '') !==
-      this.options.route.replaceAll(trimSlashesRegex, '')
-    ) {
-      throw new Error(
-        oneLine`Client with id ${clientId} attempted
-        authentication on invalid route: ${request.url}`
-      );
-    } else if (!clientProtocols) {
-      throw new Error(
+    if (!clientProtocols) {
+      this.logger.warn(
         oneLine`Client with id ${clientId} attempted authentication
         without specifying any WebSocket subprotocol`
       );
-    } else if (supportedProtocols.length === 0) {
-      throw new Error(
-        oneLineInlineLists`Client with id ${clientId}
-        attempted authentication with unsupported WebSocket
-        subprotocol(s): ${clientProtocols}`
-      );
-    } else if (this.options.basicAuth && !basicCredentials) {
-      throw new Error(
-        oneLine`Client with id ${clientId} attempted
-        authentication without supplying BASIC credentials`
-      );
-    } else if (this.options.basicAuth && basicCredentials.name !== clientId) {
-      throw new Error(
-        oneLine`Client attempted authentication with
-        mismatching ids ${clientId} in request path and
-        ${basicCredentials.name} in BASIC credentials`
-      );
+      authRequest.reject(400);
+      this.onAuthFailure(authRequest);
+      return;
     }
 
-    return {
-      id: clientId,
-      password: basicCredentials?.pass,
-      protocols: supportedProtocols,
+    if (supportedProtocols.length === 0) {
+      this.logger.warn(
+        oneLineInlineLists`Client with id ${clientId}
+        attempted authentication with unsupported
+        subprotocol(s): ${clientProtocols}`
+      );
+      authRequest.reject(400);
+      this.onAuthFailure(authRequest);
+      return;
+    }
+
+    const listener = (request: AuthRequest) => {
+      if (request.client.id === clientId) {
+        this.logger.debug(
+          oneLine`Upgrading WebSocket connection
+          with protocol ${supportedProtocols[0]}`
+        );
+
+        this.wsServer.handleUpgrade(req, socket, head, ws => {
+          ws.on('close', (code, reason) =>
+            this.onWsDisconnected(clientId, code, reason)
+          );
+
+          this.sockets.set(clientId, ws);
+          this.wsServer.emit('connection', ws, req, authRequest.client);
+        });
+
+        this.removeListener('client_accepted', listener);
+      }
     };
-  }
+
+    this.on('client_accepted', listener);
+    this.onAuthRequest(authRequest);
+  };
 
   protected onWsConnected = (
-    ws: WebSocket,
-    request: http.IncomingMessage,
+    ws: ws.WebSocket,
+    req: http.IncomingMessage,
     client: Client
   ) => {
     ws.on('message', async (data, isBinary) => {
@@ -267,7 +203,7 @@ class WsEndpoint extends BaseEndpoint {
 
       let messageProperties;
       try {
-        messageProperties = this.parseRawMessage(data.toString());
+        messageProperties = this.parseMessage(data.toString());
       } catch (err: any) {
         this.logger.warn(
           `Error while parsing message from client
@@ -301,7 +237,7 @@ class WsEndpoint extends BaseEndpoint {
         this.options.validation &&
         (type === MessageType.CALL || type === MessageType.CALLRESULT)
       ) {
-        const session = await this.sessionStorage.get(client.id);
+        const session = this.sessionStorage.get(client.id);
         const lastOutboundCall = session?.lastOutboundMessage as OutboundCall;
 
         const messageValidation = await this.validator.validate(
@@ -352,20 +288,22 @@ class WsEndpoint extends BaseEndpoint {
   };
 
   protected onWsDisconnected = (
-    ws: WebSocket,
+    clientId: string,
     code: number,
     reason: Buffer
   ) => {
-    this.logger.debug(`WebSocket connection closed with reason: ${code}`);
-    this.onSessionClosed(path.parse(ws.url).base);
+    this.logger.debug(
+      `WebSocket connection closed with reason: ${code} ${reason}`
+    );
+    this.onSessionClosed(clientId);
   };
 
-  protected parseRawMessage(rawMessage: string) {
-    let message: Array<any>;
+  protected parseMessage(rawMessage: string) {
+    let message: Array<Payload>;
     try {
       message = JSON.parse(rawMessage);
-    } catch (err: any) {
-      throw new Error('Invalid JSON format', { cause: err });
+    } catch (err) {
+      throw new Error('Invalid JSON format', { cause: err as Error });
     }
 
     if (!Array.isArray(message)) {

@@ -1,5 +1,5 @@
 import http from 'http';
-import https from 'http';
+import https from 'https';
 import { randomUUID } from 'crypto';
 import EventEmitter from 'eventemitter3';
 import { Logger } from 'ts-log';
@@ -21,7 +21,9 @@ import AuthHandler, { AcceptanceState, AuthRequest } from './auth';
 import { InboundMessageHandler, OutboundMessageHandler } from './handler';
 
 interface Endpoint extends EventEmitter<EndpointEvents> {
-  get isListening(): boolean;
+  options: EndpointOptions;
+  isListening: boolean;
+
   listen(): void;
   stop(): void;
   drop(clientId: string, force: boolean): void;
@@ -47,10 +49,11 @@ type EndpointEvents = {
   server_listening: (options: EndpointOptions) => void;
   server_stopping: () => void;
   server_stopped: () => void;
-  client_connecting: (client: Client) => void;
-  client_connected: (client: Client) => void;
-  client_rejected: (client: Client) => void;
-  client_disconnected: (client: Client) => void;
+  client_connecting: (request: AuthRequest) => void;
+  client_accepted: (request: AuthRequest) => void;
+  client_rejected: (request: AuthRequest) => void;
+  client_connected: (session: Session) => void;
+  client_disconnected: (session: Session) => void;
   message_sent: (message: OutboundMessage) => void;
   message_received: (message: InboundMessage) => void;
 };
@@ -260,23 +263,44 @@ abstract class BaseEndpoint
     this.logger.trace(err.stack);
   };
 
-  protected async onAuthenticationAttempt(request: AuthenticationRequest) {
+  protected onAuthRequest(request: AuthRequest) {
     this.logger.debug(
       `Client with id ${request.client.id} attempting authentication`
     );
-    this.emit('client_connecting', request.client);
+    this.emit('client_connecting', request);
 
-    await this.authHandlers.handle(request);
+    this.authHandlers.handle(request).then(result => {
+      switch (result.state) {
+        case AcceptanceState.Rejected:
+          this.onAuthFailure(request);
+          break;
+        case AcceptanceState.Accepted:
+          this.onAuthSuccess(request);
+          break;
+        case AcceptanceState.Pending:
+        default:
+          this.logger.warn(
+            oneLine`Authentication request from client with
+            id ${request.client.id} has not been handled`
+          );
+      }
+    });
   }
 
-  protected onAuthenticationFailure(request: AuthenticationRequest) {
+  protected onAuthFailure(request: AuthRequest) {
+    const socket = request.req.socket;
+    const status = request.statusCode;
+    socket.write(`HTTP/1.1 ${status} ${http.STATUS_CODES[status]}\r\n\r\n`);
+    socket.destroy();
+
     this.logger.warn(
-      `Client with id ${request.client.id} failed to authenticate`
+      oneLine`Rejecting authentication request from client with id
+      ${request.client.id} with status: ${status} ${http.STATUS_CODES[status]}`
     );
-    this.emit('client_rejected', request.client);
+    this.emit('client_rejected', request);
   }
 
-  protected async onAuthenticationSuccess(request: AuthenticationRequest) {
+  protected onAuthSuccess(request: AuthRequest) {
     if (this.isConnected(request.client.id)) {
       this.logger.warn(
         oneLine`onAuthenticationSuccess() was called but client
@@ -286,17 +310,17 @@ abstract class BaseEndpoint
     }
 
     const session = new Session(request.client, request.protocol);
+    this.sessionStorage.set(request.client.id, session);
 
-    process.nextTick(() => {
-      this.logger.info(
-        `Client with id ${request.client.id} authenticated successfully`
-      );
-      this.emit('client_connected', request.client);
-    });
+    this.emit('client_accepted', request);
+    this.logger.info(
+      `Client with id ${request.client.id} authenticated successfully`
+    );
+    this.emit('client_connected', session);
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!(await this.sessionStorage.has(clientId))) {
+    if (!this.sessionStorage.delete(clientId)) {
       this.logger.error(
         oneLine`onSessionClosed() was called but session for client
         with id ${clientId} does not exist`
@@ -306,7 +330,7 @@ abstract class BaseEndpoint
     }
 
     this.logger.info(`Client with id ${clientId} disconnected`);
-    this.emit('client_disconnected', new Client(clientId));
+    this.emit('client_disconnected', this.sessionStorage.get(clientId));
   }
 
   protected async onInboundMessage(message: InboundMessage) {
@@ -330,6 +354,14 @@ abstract class BaseEndpoint
         this.logger.trace(err.stack);
       }
     }
+  }
+
+  protected get context(): RequestContext {
+    return {
+      endpoint: this,
+      logger: this.logger,
+      sessions: this.sessionStorage,
+    };
   }
 }
 

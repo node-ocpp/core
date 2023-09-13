@@ -18,7 +18,7 @@ type EndpointOptions = Partial<{
 const defaultOptions: EndpointOptions = {
   port: process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
   hostname: 'localhost',
-  route: 'ocpp',
+  route: '/ocpp',
   protocols: ProtocolVersions,
   actionsAllowed: OcppActions,
   maxConnections: 511,
