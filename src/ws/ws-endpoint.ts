@@ -25,6 +25,7 @@ import {
 import WsValidator from './ws-validator';
 
 class WsEndpoint extends BaseEndpoint {
+  readonly sockets: Map<string, ws.WebSocket>;
   protected wsServer: ws.Server;
   protected validator: WsValidator;
 
@@ -48,6 +49,7 @@ class WsEndpoint extends BaseEndpoint {
       sessionStorage
     );
 
+    this.sockets = new Map();
     this.wsServer = new ws.Server({ noServer: true });
     this.validator = validator;
 
@@ -65,7 +67,12 @@ class WsEndpoint extends BaseEndpoint {
     code = 1000,
     data?: string | Buffer
   ) {
-    const ws = this.getSocket(clientId);
+    const ws = this.sockets.get(clientId);
+
+    if (!ws) {
+      this.logger.warn(`drop() was called with invalid client id ${clientId}`);
+      return;
+    }
 
     if (force) {
       ws.terminate();
@@ -75,7 +82,7 @@ class WsEndpoint extends BaseEndpoint {
   }
 
   protected handleSend = async (message: OutboundMessage) => {
-    const ws = this.getSocket(message.recipient.id);
+    const ws = this.sockets.get(message.recipient.id);
     const session = await this.sessionStorage.get(message.recipient.id);
 
     const messageArr: any[] = [message.type, message.id];
@@ -116,17 +123,6 @@ class WsEndpoint extends BaseEndpoint {
       });
     });
   };
-
-  protected getSocket(clientId: string) {
-    let socket: WebSocket;
-    this.wsServer.clients.forEach(ws => {
-      if (path.parse(ws.url).base === clientId) {
-        socket = ws;
-      }
-    });
-
-    return socket;
-  }
 
   protected onHttpUpgrade = (
     request: http.IncomingMessage,
