@@ -211,6 +211,11 @@ abstract class BaseEndpoint
     });
   }
 
+  public auth(callback: Handlers.BasicAuthCallback) {
+    const handler = new Handlers.BasicAuthHandler(callback);
+    this.authHandlers.add(handler, this.authHandlers.size - 2);
+  }
+
   public handle<TRequest extends InboundCall>(
     action: OcppAction,
     callback: (
@@ -311,8 +316,8 @@ abstract class BaseEndpoint
     socket.destroy();
 
     this.logger.warn(
-      oneLine`Rejecting authentication request from client with id
-      ${request.client.id} with status: ${status} ${http.STATUS_CODES[status]}`
+      oneLine`Rejecting auth request from client with id ${request.client.id}
+      with status: ${status} ${http.STATUS_CODES[status]}`
     );
     this.emit('client_rejected', request);
   }
