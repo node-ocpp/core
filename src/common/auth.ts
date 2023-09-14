@@ -58,6 +58,7 @@ class AuthRequest extends BaseRequest implements AuthRequest {
     }
 
     this._state = AcceptanceState.Rejected;
+    this._statusCode = statusCode;
   }
 
   get basicAuth(): BasicAuthResult | undefined {
