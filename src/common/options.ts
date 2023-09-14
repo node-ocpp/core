@@ -1,3 +1,5 @@
+import { SecureContextOptions } from 'tls';
+
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 
@@ -5,6 +7,7 @@ type EndpointOptions = Partial<{
   port: number;
   hostname: string;
   route: string;
+  tls: SecureContextOptions;
   protocols: Readonly<ProtocolVersion[]>;
   actionsAllowed: Readonly<OcppAction[]>;
   maxConnections: number;

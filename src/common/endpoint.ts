@@ -66,8 +66,8 @@ abstract class BaseEndpoint
   readonly options: EndpointOptions;
   readonly sessions: Map<string, Session>;
 
-  protected httpServer: http.Server;
   protected logger: Logger;
+  protected httpServer: http.Server;
 
   protected authHandlers: HandlerChain<AuthHandler>;
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
@@ -82,31 +82,50 @@ abstract class BaseEndpoint
     authHandlers: AuthHandler[] = [],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
-    httpServer = http.createServer(),
-    logger: Logger = defaultLogger
+    logger: Logger = defaultLogger,
+    httpServer?: http.Server
   ) {
     super();
     this.options = _.merge(defaultOptions, options);
     this.sessions = new Map();
     this.logger = logger;
 
+    this.logger.debug('Loaded endpoint configuration');
+    this.logger.trace(this.options);
+
+    if (!httpServer) {
+      if (this.options.certificateAuth) {
+        httpServer = https.createServer({
+          ...this.options.tls,
+          requestCert: true,
+          rejectUnauthorized: false,
+        });
+      } else if (this.options.tls) {
+        httpServer = https.createServer(this.options.tls);
+      } else {
+        httpServer = http.createServer();
+      }
+    }
+
+    this.httpServer = httpServer;
+    this.httpServer.on('error', this.onHttpError);
+
     if (!this.options.authRequired) {
       this.logger.warn(
-        oneLine`options.authRequired is set to false,
-        authentication attempts will be accepted by default`
+        oneLine`options.authRequired is disabled,
+        auth attempts will be accepted by default`
       );
     }
     if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
       this.logger.error(
-        oneLine`options.certificateAuth is set to
-        true but no https.Server instance was passed`
+        oneLine`options.certificateAuth is enabled
+        but no https.Server instance was passed`
+      );
+    } else if (this.options.tls && !(httpServer instanceof https.Server)) {
+      this.logger.error(
+        oneLine`options.tls is set but no https.Server instance was passed`
       );
     }
-    this.logger.debug('Loaded endpoint configuration');
-    this.logger.trace(this.options);
-
-    this.httpServer = httpServer;
-    this.httpServer.on('error', this.onHttpError);
 
     this.authHandlers = new HandlerChain(
       new Handlers.SessionExistsHandler(),

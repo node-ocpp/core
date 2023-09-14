@@ -33,8 +33,8 @@ class WsEndpoint extends BaseEndpoint {
     authHandlers?: AuthHandler[],
     inboundHandlers?: InboundMessageHandler[],
     outboundHandlers?: OutboundMessageHandler[],
-    httpServer?: http.Server,
     logger?: Logger,
+    httpServer?: http.Server,
     validator: WsValidator = new WsValidator()
   ) {
     super(
@@ -42,8 +42,8 @@ class WsEndpoint extends BaseEndpoint {
       authHandlers,
       inboundHandlers,
       outboundHandlers,
-      httpServer,
-      logger
+      logger,
+      httpServer
     );
 
     this.sockets = new Map();
