@@ -128,7 +128,7 @@ abstract class BaseEndpoint
     }
 
     this.authHandlers = new HandlerChain(
-      new Handlers.SessionExistsHandler(),
+      new Handlers.PreconditionsHandler(),
       new Handlers.SessionTimeoutHandler(),
       ...authHandlers,
       new Handlers.DefaultAuthHandler()
