@@ -5,7 +5,8 @@
     "noImplicitReturns": false,
     "strictNullChecks": false,
     "esModuleInterop": true,
-    "lib": ["es2022"]
+    "skipDefaultLibCheck": true,
+    "lib": ["es2018", "es2022.error"]
   },
   "include": [
     "src/**/*.ts",
