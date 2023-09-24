@@ -1,11 +1,10 @@
 {
-  "name": "evy-core",
-  "version": "0.5.5",
-  "description": "",
-  "main": "index.js",
-  "engines": {
-    "node": ">=11.14.0"
-  },
+  "name": "node-ocpp-core",
+  "version": "0.6.0",
+  "description": "An OCPP CentralSystem framework",
+  "author": "Fabian Stern <fabian.stern@visia-it.com>",
+  "license": "ISC",
+  "repository": "node-ocpp/core",
   "scripts": {
     "test": "npm run test",
     "lint": "npx gts lint",
@@ -17,12 +16,6 @@
     "pretest": "npm run compile",
     "posttest": "npm run lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://git-iit.fh-joanneum.at/evy/core.git"
-  },
-  "author": "Fabian Stern <fabian.stern@visia-it.com>",
-  "license": "ISC",
   "dependencies": {
     "basic-auth": "^2.0.1",
     "common-tags": "^1.8.2",
