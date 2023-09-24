@@ -1,18 +1,18 @@
-import { SessionStorage } from '../session';
+import Session from '../session';
 import { InboundMessage, OutboundMessage } from '../message';
 import { InboundMessageHandler, OutboundMessageHandler } from '../handler';
 import { InboundCall, OutboundCall } from '../call';
 
 class InboundPendingMessageHandler extends InboundMessageHandler {
-  private sessionStorage;
+  private sessions;
 
-  constructor(sessionStorage: SessionStorage) {
+  constructor(sessions: Map<string, Session>) {
     super();
-    this.sessionStorage = sessionStorage;
+    this.sessions = sessions;
   }
 
   async handle(message: InboundMessage) {
-    const session = await this.sessionStorage.get(message.sender.id);
+    const session = this.sessions.get(message.sender.id);
 
     if (
       !(message instanceof InboundCall) &&
@@ -27,22 +27,21 @@ class InboundPendingMessageHandler extends InboundMessageHandler {
     }
 
     session.lastInboundMessage = message;
-    await this.sessionStorage.set(session.client.id, session);
 
     return await super.handle(message);
   }
 }
 
 class OutboundPendingMessageHandler extends OutboundMessageHandler {
-  private sessionStorage;
+  private sessions;
 
-  constructor(sessionStorage: SessionStorage) {
+  constructor(sessions: Map<string, Session>) {
     super();
-    this.sessionStorage = sessionStorage;
+    this.sessions = sessions;
   }
 
   async handle(message: OutboundMessage) {
-    const session = await this.sessionStorage.get(message.recipient.id);
+    const session = this.sessions.get(message.recipient.id);
 
     if (
       !(message instanceof OutboundCall) &&
@@ -57,7 +56,6 @@ class OutboundPendingMessageHandler extends OutboundMessageHandler {
     }
 
     session.lastOutboundMessage = message;
-    await this.sessionStorage.set(session.client.id, session);
 
     return await super.handle(message);
   }

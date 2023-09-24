@@ -1,3 +1,5 @@
+import { SecureContextOptions } from 'tls';
+
 import ProtocolVersion, { ProtocolVersions } from '../types/ocpp/version';
 import OcppAction, { OcppActions } from '../types/ocpp/action';
 
@@ -5,6 +7,7 @@ type EndpointOptions = Partial<{
   port: number;
   hostname: string;
   route: string;
+  tls: SecureContextOptions;
   protocols: Readonly<ProtocolVersion[]>;
   actionsAllowed: Readonly<OcppAction[]>;
   maxConnections: number;
@@ -18,7 +21,7 @@ type EndpointOptions = Partial<{
 const defaultOptions: EndpointOptions = {
   port: process.env.PORT || process.env.NODE_ENV !== 'production' ? 8080 : 80,
   hostname: 'localhost',
-  route: 'ocpp',
+  route: '/ocpp',
   protocols: ProtocolVersions,
   actionsAllowed: OcppActions,
   maxConnections: 511,

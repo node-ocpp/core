@@ -16,7 +16,7 @@ const OcppActions = [
   'UnlockConnector',
 ] as const;
 
-declare type OcppAction = typeof OcppActions[number];
+declare type OcppAction = (typeof OcppActions)[number];
 
 export default OcppAction;
 export { OcppActions };

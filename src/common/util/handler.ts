@@ -1,6 +1,9 @@
+import { Logger } from 'ts-log';
+
+import { Endpoint } from '../endpoint';
 import { logObject } from './logger';
 
-interface Handler<TRequest> {
+interface Handler<TRequest extends Request> {
   handle: HandlerFunction<TRequest>;
   set next(handler: Handler<TRequest>);
 }
@@ -12,7 +15,18 @@ type HandlerRequest<THandler> = THandler extends Handler<infer TRequest>
   ? TRequest
   : never;
 
-abstract class BaseHandler<TRequest> implements Handler<TRequest> {
+interface Request {
+  context: RequestContext;
+}
+
+type RequestContext = {
+  endpoint: Endpoint;
+  logger: Logger;
+};
+
+abstract class BaseHandler<TRequest extends Request>
+  implements Handler<TRequest>
+{
   private _next!: BaseHandler<TRequest>;
 
   set next(handler: BaseHandler<TRequest>) {
@@ -27,7 +41,9 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
     }
   }
 
-  static fromFunction<TRequest>(handler: HandlerFunction<TRequest>) {
+  static fromFunction<TRequest extends Request>(
+    handler: HandlerFunction<TRequest>
+  ) {
     return new (class AnonymousHandler extends BaseHandler<TRequest> {
       async handle(request: TRequest) {
         return await super.handle(await handler(request));
@@ -36,9 +52,17 @@ abstract class BaseHandler<TRequest> implements Handler<TRequest> {
   }
 }
 
+class BaseRequest implements Request {
+  readonly context: RequestContext;
+
+  constructor(context: RequestContext) {
+    this.context = context;
+  }
+}
+
 class HandlerChain<
   THandler extends Handler<TRequest>,
-  TRequest = HandlerRequest<THandler>
+  TRequest extends Request = HandlerRequest<THandler>,
 > {
   private handlers: THandler[];
 
@@ -87,4 +111,12 @@ class HandlerChain<
 }
 
 export default Handler;
-export { BaseHandler, HandlerChain, HandlerFunction, HandlerRequest };
+export {
+  BaseHandler,
+  BaseRequest,
+  Request,
+  RequestContext,
+  HandlerChain,
+  HandlerFunction,
+  HandlerRequest,
+};

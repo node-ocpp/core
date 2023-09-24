@@ -1,5 +1,5 @@
 import http from 'http';
-import https from 'http';
+import https from 'https';
 import { randomUUID } from 'crypto';
 import EventEmitter from 'eventemitter3';
 import { Logger } from 'ts-log';
@@ -8,28 +8,27 @@ import _ from 'lodash';
 
 import EndpointOptions, { defaultOptions } from './options';
 import defaultLogger from './util/logger';
-import { HandlerChain, HandlerFunction } from './util/handler';
+import { HandlerChain, HandlerFunction, RequestContext } from './util/handler';
 import * as Handlers from './handlers';
-import Session, { SessionStorage, Client } from './session';
+import Session, { Client } from './session';
 import OcppAction from '../types/ocpp/action';
 import MessageType from '../types/ocpp/type';
 import { InboundMessage, OutboundMessage } from './message';
 import { InboundCall, OutboundCall } from './call';
 import { OutboundCallError } from './callerror';
 import { CallPayload, CallResponsePayload } from '../types/ocpp/util';
-import {
-  AuthenticationHandler,
-  AuthenticationRequest,
-  InboundMessageHandler,
-  OutboundMessageHandler,
-} from './handler';
+import AuthHandler, { AcceptanceState, AuthRequest } from './auth';
+import { InboundMessageHandler, OutboundMessageHandler } from './handler';
 
 interface Endpoint extends EventEmitter<EndpointEvents> {
-  get isListening(): boolean;
+  options: EndpointOptions;
+  sessions: Map<string, Session>;
+  isListening: boolean;
+
   listen(): void;
   stop(): void;
-  dropSession(clientId: string, force: boolean): void;
-  hasSession(clientId: string): boolean;
+  drop(clientId: string, force: boolean): void;
+  isConnected(clientId: string): boolean;
 
   handle<TRequest extends InboundCall>(
     action: OcppAction,
@@ -51,10 +50,11 @@ type EndpointEvents = {
   server_listening: (options: EndpointOptions) => void;
   server_stopping: () => void;
   server_stopped: () => void;
-  client_connecting: (client: Client) => void;
-  client_connected: (client: Client) => void;
-  client_rejected: (client: Client) => void;
-  client_disconnected: (client: Client) => void;
+  client_connecting: (request: AuthRequest) => void;
+  client_accepted: (request: AuthRequest) => void;
+  client_rejected: (request: AuthRequest) => void;
+  client_connected: (session: Session) => void;
+  client_disconnected: (session: Session) => void;
   message_sent: (message: OutboundMessage) => void;
   message_received: (message: InboundMessage) => void;
 };
@@ -64,64 +64,81 @@ abstract class BaseEndpoint
   implements Endpoint
 {
   readonly options: EndpointOptions;
+  readonly sessions: Map<string, Session>;
 
-  protected httpServer: http.Server;
-  protected sessionStorage: SessionStorage;
   protected logger: Logger;
+  protected httpServer: http.Server;
 
-  protected authHandlers: HandlerChain<AuthenticationHandler>;
+  protected authHandlers: HandlerChain<AuthHandler>;
   protected inboundHandlers: HandlerChain<InboundMessageHandler>;
   protected outboundHandlers: HandlerChain<OutboundMessageHandler>;
 
-  abstract hasSession(clientId: string): boolean;
-  abstract dropSession(clientId: string, force: boolean): void;
+  abstract isConnected(clientId: string): boolean;
+  abstract drop(clientId: string, force: boolean): void;
   protected abstract handleSend: HandlerFunction<OutboundMessage>;
 
   constructor(
     options: EndpointOptions,
-    authHandlers: AuthenticationHandler[] = [],
+    authHandlers: AuthHandler[] = [],
     inboundHandlers: InboundMessageHandler[] = [],
     outboundHandlers: OutboundMessageHandler[] = [],
-    httpServer = http.createServer(),
     logger: Logger = defaultLogger,
-    sessionStorage: SessionStorage = new Map()
+    httpServer?: http.Server
   ) {
     super();
+    this.options = _.merge(defaultOptions, options);
+    this.sessions = new Map();
     this.logger = logger;
 
-    this.options = _.merge(defaultOptions, options);
-
-    if (!this.options.authRequired) {
-      this.logger.warn(
-        oneLine`options.authRequired is set to false,
-        authentication attempts will be accepted by default`
-      );
-    }
-    if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
-      this.logger.error(
-        oneLine`options.certificateAuth is set to
-        true but no https.Server instance was passed`
-      );
-    }
     this.logger.debug('Loaded endpoint configuration');
     this.logger.trace(this.options);
+
+    if (!httpServer) {
+      if (this.options.certificateAuth) {
+        httpServer = https.createServer({
+          ...this.options.tls,
+          requestCert: true,
+          rejectUnauthorized: false,
+        });
+      } else if (this.options.tls) {
+        httpServer = https.createServer(this.options.tls);
+      } else {
+        httpServer = http.createServer();
+      }
+    }
 
     this.httpServer = httpServer;
     this.httpServer.on('error', this.onHttpError);
 
-    this.sessionStorage = sessionStorage;
+    if (!this.options.authRequired) {
+      this.logger.warn(
+        oneLine`options.authRequired is disabled,
+        auth attempts will be accepted by default`
+      );
+    }
+    if (this.options.certificateAuth && !(httpServer instanceof https.Server)) {
+      this.logger.error(
+        oneLine`options.certificateAuth is enabled
+        but no https.Server instance was passed`
+      );
+    } else if (this.options.tls && !(httpServer instanceof https.Server)) {
+      this.logger.error(
+        oneLine`options.tls is set but no https.Server instance was passed`
+      );
+    }
 
     this.authHandlers = new HandlerChain(
-      new Handlers.SessionExistsHandler(sessionStorage, logger),
-      new Handlers.SessionTimeoutHandler(sessionStorage, logger, this.options),
-      ...authHandlers
+      new Handlers.PreconditionsHandler(),
+      new Handlers.SessionTimeoutHandler(),
+      ...authHandlers,
+      new Handlers.DefaultAuthHandler()
     );
     this.logger.debug(`Loaded ${this.authHandlers.size} auth handlers`);
     this.logger.trace(this.authHandlers.toString());
 
     this.inboundHandlers = new HandlerChain(
-      new Handlers.InboundMessageSynchronicityHandler(sessionStorage, logger),
-      new Handlers.InboundPendingMessageHandler(sessionStorage),
+      new Handlers.InboundMessageSynchronicityHandler(this.sessions, logger),
+      new Handlers.InboundPendingMessageHandler(this.sessions),
       new Handlers.InboundActionsAllowedHandler(this.options, logger),
       ...inboundHandlers,
       new Handlers.DefaultMessageHandler(logger)
@@ -130,11 +147,11 @@ abstract class BaseEndpoint
     this.logger.trace(this.inboundHandlers.toString());
 
     this.outboundHandlers = new HandlerChain(
-      new Handlers.OutboundMessageSynchronicityHandler(sessionStorage, logger),
+      new Handlers.OutboundMessageSynchronicityHandler(this.sessions, logger),
       new Handlers.OutboundActionsAllowedHandler(this.options, logger),
       ...outboundHandlers,
       async (message: OutboundMessage) => await this.handleSend(message),
-      new Handlers.OutboundPendingMessageHandler(sessionStorage)
+      new Handlers.OutboundPendingMessageHandler(this.sessions)
     );
     this.logger.debug(`Loaded ${this.outboundHandlers.size} outbound handlers`);
     this.logger.trace(this.outboundHandlers.toString());
@@ -194,6 +211,11 @@ abstract class BaseEndpoint
     });
   }
 
+  public auth(callback: Handlers.BasicAuthCallback) {
+    const handler = new Handlers.BasicAuthHandler(callback);
+    this.authHandlers.add(handler, this.authHandlers.size - 2);
+  }
+
   public handle<TRequest extends InboundCall>(
     action: OcppAction,
     callback: (
@@ -234,7 +256,7 @@ abstract class BaseEndpoint
       return;
     }
 
-    if (!this.hasSession(message.recipient.id)) {
+    if (!this.isConnected(message.recipient.id)) {
       this.logger.warn(
         oneLine`onSend() was called but client with
         id ${message.recipient.id} is not connected`
@@ -263,24 +285,45 @@ abstract class BaseEndpoint
     this.logger.trace(err.stack);
   };
 
-  protected async onAuthenticationAttempt(request: AuthenticationRequest) {
+  protected onAuthRequest(request: AuthRequest) {
     this.logger.debug(
       `Client with id ${request.client.id} attempting authentication`
     );
-    this.emit('client_connecting', request.client);
+    this.emit('client_connecting', request);
 
-    await this.authHandlers.handle(request);
+    this.authHandlers.handle(request).then(result => {
+      switch (result.state) {
+        case AcceptanceState.Rejected:
+          this.onAuthFailure(request);
+          break;
+        case AcceptanceState.Accepted:
+          this.onAuthSuccess(request);
+          break;
+        case AcceptanceState.Pending:
+        default:
+          this.logger.warn(
+            oneLine`Authentication request from client with
+            id ${request.client.id} has not been handled`
+          );
+      }
+    });
   }
 
-  protected onAuthenticationFailure(request: AuthenticationRequest) {
+  protected onAuthFailure(request: AuthRequest) {
+    const socket = request.req.socket;
+    const status = request.statusCode;
+    socket.write(`HTTP/1.1 ${status} ${http.STATUS_CODES[status]}\r\n\r\n`);
+    socket.destroy();
+
     this.logger.warn(
-      `Client with id ${request.client.id} failed to authenticate`
+      oneLine`Rejecting auth request from client with id ${request.client.id}
+      with status: ${status} ${http.STATUS_CODES[status]}`
     );
-    this.emit('client_rejected', request.client);
+    this.emit('client_rejected', request);
   }
 
-  protected async onAuthenticationSuccess(request: AuthenticationRequest) {
-    if (await this.hasSession(request.client.id)) {
+  protected onAuthSuccess(request: AuthRequest) {
+    if (this.isConnected(request.client.id)) {
       this.logger.warn(
         oneLine`onAuthenticationSuccess() was called but client
         with id ${request.client.id} is already connected`
@@ -288,24 +331,18 @@ abstract class BaseEndpoint
       return;
     }
 
-    const session = new Session(
-      request.client,
-      request.protocol,
-      () => this.hasSession(request.client.id),
-      (force = false) => this.dropSession(request.client.id, force)
-    );
-    await this.sessionStorage.set(request.client.id, session);
+    const session = new Session(request.client, request.protocol);
+    this.sessions.set(request.client.id, session);
 
-    process.nextTick(() => {
-      this.logger.info(
-        `Client with id ${request.client.id} authenticated successfully`
-      );
-      this.emit('client_connected', request.client);
-    });
+    this.emit('client_accepted', request);
+    this.logger.info(
+      `Client with id ${request.client.id} authenticated successfully`
+    );
+    this.emit('client_connected', session);
   }
 
   protected async onSessionClosed(clientId: string) {
-    if (!(await this.sessionStorage.has(clientId))) {
+    if (!this.sessions.delete(clientId)) {
       this.logger.error(
         oneLine`onSessionClosed() was called but session for client
         with id ${clientId} does not exist`
@@ -315,7 +352,7 @@ abstract class BaseEndpoint
     }
 
     this.logger.info(`Client with id ${clientId} disconnected`);
-    this.emit('client_disconnected', new Client(clientId));
+    this.emit('client_disconnected', this.sessions.get(clientId));
   }
 
   protected async onInboundMessage(message: InboundMessage) {
@@ -339,6 +376,13 @@ abstract class BaseEndpoint
         this.logger.trace(err.stack);
       }
     }
+  }
+
+  protected get context(): RequestContext {
+    return {
+      endpoint: this,
+      logger: this.logger,
+    };
   }
 }
 

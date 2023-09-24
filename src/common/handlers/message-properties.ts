@@ -4,7 +4,7 @@ import { Payload } from '../message';
 import { InboundCall } from '../call';
 import { InboundCallResult, OutboundCallResult } from '../callresult';
 
-type ActionHandlerCallback = (data: Payload) => Promise<any>;
+type ActionHandlerCallback = (data: Payload) => Promise<Payload>;
 
 class ActionHandler extends InboundMessageHandler {
   private action: OcppAction;

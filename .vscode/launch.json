@@ -1,5 +1,5 @@
 {
-    "version": "0.2.0",
+    "version": "0.2.1",
     "configurations": [
         {
             "type": "node",
@@ -16,7 +16,7 @@
                 "<node_internals>/**"
             ],
             "outFiles": [
-                "${workspaceFolder}/build/**/*.js"
+                "${workspaceFolder}/dist/**/*.js"
             ]
         }
     ]

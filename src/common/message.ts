@@ -1,6 +1,7 @@
 import { Client } from './session';
 import MessageType from '../types/ocpp/type';
 import { InboundMessageHandler, ResponseHandler } from './handler';
+import { RequestContext } from './util/handler';
 
 type MessageValue =
   | string
@@ -12,6 +13,7 @@ type MessageValue =
 
 type Payload = any; // MessageValue | null | {};
 abstract class OcppMessage {
+  context: RequestContext;
   readonly type!: MessageType;
   readonly id: string;
   protected _timestamp?: Date;
@@ -57,7 +59,7 @@ abstract class OutboundMessage extends OcppMessage {
 }
 
 abstract class RespondableMessage<
-  TResponse extends OutboundMessage
+  TResponse extends OutboundMessage,
 > extends InboundMessage {
   private _responseHandler?: ResponseHandler<TResponse>;
   private _response?: OutboundMessage;
@@ -95,7 +97,7 @@ abstract class RespondableMessage<
 }
 
 abstract class ResultingMessage<
-  TResponse extends InboundMessage
+  TResponse extends InboundMessage,
 > extends OutboundMessage {
   private _responseHandler?: InboundMessageHandler<TResponse>;
   private _response?: TResponse;

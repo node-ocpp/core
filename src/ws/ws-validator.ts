@@ -15,7 +15,7 @@ type ValidatorOptions = {
 };
 
 const schemaBase = path.join(__dirname, '../../../var/jsonschema');
-const defaultOptions = {
+const defaultOptions: ValidatorOptions = {
   schemaDir: new Map([
     // OCPP <= 1.6    /var/jsonschema/ocpp1.6
     [['ocpp1.2', 'ocpp1.5', 'ocpp1.6'], path.join(schemaBase, 'ocpp1.6')],
@@ -28,8 +28,8 @@ class WsValidator {
   protected options: ValidatorOptions;
   protected logger: Logger;
   protected validator: Validator;
-  protected requestSchemas: Map<OcppAction, Record<string, any>>;
-  protected responseSchemas: Map<OcppAction, Record<string, any>>;
+  protected requestSchemas: Map<OcppAction, Record<string, string>>;
+  protected responseSchemas: Map<OcppAction, Record<string, string>>;
 
   constructor(
     options: ValidatorOptions = defaultOptions,
@@ -48,9 +48,9 @@ class WsValidator {
     data: Payload,
     protocol: ProtocolVersion
   ) {
-    let schema: Record<string, any>;
+    let schema: Record<string, string>;
     let schemaType: 'request' | 'response';
-    let schemaMap: Map<OcppAction, Record<string, any>>;
+    let schemaMap: Map<OcppAction, Record<string, string>>;
 
     switch (type) {
       case MessageType.CALL:
