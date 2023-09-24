@@ -1,6 +1,6 @@
 {
-  "name": "node-ocpp-core",
-  "version": "0.6.0",
+  "name": "@node-ocpp/core",
+  "version": "0.6.0-beta",
   "description": "An OCPP CentralSystem framework",
   "author": "Fabian Stern <fabian.stern@visia-it.com>",
   "license": "ISC",
