@@ -128,8 +128,8 @@ class WsEndpoint extends BaseEndpoint {
   ) => {
     const clientId = path.basename(req.url);
     const clientProtocols = req.headers['sec-websocket-protocol']?.split(',');
-    const supportedProtocols = this.options.protocols.filter(protocol =>
-      clientProtocols?.includes(protocol)
+    const supportedProtocols = this.options.protocols.filter(
+      protocol => clientProtocols?.includes(protocol)
     ) as ProtocolVersion[];
     const authRequest = new AuthRequest(
       this.context,

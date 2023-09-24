@@ -14,7 +14,7 @@ import { InboundMessageHandler, ResponseHandler } from './handler';
 
 interface Call<
   TPayload extends Payload,
-  TResponse extends CallResult = CallResult
+  TResponse extends CallResult = CallResult,
 > extends OcppMessage {
   readonly type: MessageType.CALL;
   action: OcppAction;
@@ -23,7 +23,7 @@ interface Call<
 
 class InboundCall<
     TPayload = Payload,
-    TResponse extends OutboundCallResult = OutboundCallResult
+    TResponse extends OutboundCallResult = OutboundCallResult,
   >
   extends RespondableMessage<TResponse>
   implements Call<TPayload, TResponse>
@@ -48,7 +48,7 @@ class InboundCall<
 
 class OutboundCall<
     TPayload = Payload,
-    TResponse extends InboundCallResult = InboundCallResult
+    TResponse extends InboundCallResult = InboundCallResult,
   >
   extends ResultingMessage<TResponse>
   implements Call<TPayload, TResponse>

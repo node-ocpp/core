@@ -62,7 +62,7 @@ class BaseRequest implements Request {
 
 class HandlerChain<
   THandler extends Handler<TRequest>,
-  TRequest extends Request = HandlerRequest<THandler>
+  TRequest extends Request = HandlerRequest<THandler>,
 > {
   private handlers: THandler[];
 

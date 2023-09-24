@@ -2,15 +2,15 @@ import { BaseHandler } from './util/handler';
 import OcppMessage, { InboundMessage, OutboundMessage } from './message';
 
 abstract class OcppMessageHandler<
-  TMessage extends OcppMessage = OcppMessage
+  TMessage extends OcppMessage = OcppMessage,
 > extends BaseHandler<TMessage> {}
 
 abstract class InboundMessageHandler<
-  TMessage extends InboundMessage = InboundMessage
+  TMessage extends InboundMessage = InboundMessage,
 > extends OcppMessageHandler<TMessage> {}
 
 abstract class OutboundMessageHandler<
-  TMessage extends OutboundMessage = OutboundMessage
+  TMessage extends OutboundMessage = OutboundMessage,
 > extends OcppMessageHandler<TMessage> {}
 
 type ResponseHandler<TResponse extends OutboundMessage> = (

@@ -6,7 +6,7 @@ const ProtocolVersions = [
   'ocpp2.0.1',
 ] as const;
 
-declare type ProtocolVersion = typeof ProtocolVersions[number];
+declare type ProtocolVersion = (typeof ProtocolVersions)[number];
 
 export default ProtocolVersion;
 export { ProtocolVersions };
