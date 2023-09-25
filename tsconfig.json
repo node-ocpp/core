@@ -1,0 +1,17 @@
+{
+  "extends": "./node_modules/gts/tsconfig-google.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "noImplicitReturns": false,
+    "strictNullChecks": false,
+    "esModuleInterop": true,
+    "skipDefaultLibCheck": true,
+    "lib": ["es2018", "es2022.error"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "examples/**/*.ts"
+  ]
+}

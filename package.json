@@ -1,0 +1,44 @@
+{
+  "name": "@node-ocpp/core",
+  "version": "0.6.0-beta",
+  "description": "An OCPP CentralSystem framework",
+  "author": "Fabian Stern <fabian.stern@visia-it.com>",
+  "license": "ISC",
+  "repository": "node-ocpp/core",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "engines": {
+    "node": ">=11.14.0"
+  },
+  "scripts": {
+    "test": "npm run test",
+    "lint": "npx gts lint",
+    "clean": "npx gts clean",
+    "compile": "npx tsc",
+    "watch": "npx tsc -w",
+    "fix": "npx gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint"
+  },
+  "dependencies": {
+    "basic-auth": "^2.0.1",
+    "common-tags": "^1.8.2",
+    "eventemitter3": "^5.0.1",
+    "jsonschema": "^1.4.1",
+    "lodash": "^4.17.21",
+    "winston": "^3.10.0",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/basic-auth": "^1.1.4",
+    "@types/common-tags": "^1.8.2",
+    "@types/lodash.merge": "^4.6.7",
+    "@types/lodash.pick": "^4.4.7",
+    "@types/node": "^20.6.3",
+    "@types/ws": "^8.5.5",
+    "gts": "^5.0.1",
+    "ts-log": "^2.2.5",
+    "typescript": "^5.2.2"
+  }
+}
